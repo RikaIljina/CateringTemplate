@@ -1,0 +1,82 @@
+{
+    "venue": "Mariestad",
+    "customer_name": "Hova IF",
+    "amount_guests": 3,
+    "date": "2025-04-04",
+    "meals": {
+        "lunch": {
+            "main": {
+                "amount_special": 2,
+                "food": "Viltfärsbiff med enbärssky, smörstyvad savojkål, kokt potatis och lingon",
+                "special_food": {
+                    "1 p. -mjölk och mjölkprodukter ⛔️": [
+                        "glutenfri"
+                    ],
+                    "1 p. Fläsk 🚫": []
+                }
+            },
+            "amount_guests": 3,
+            "leave_bq": "11:00:00",
+            "serve_time": "12:00:00",
+            "salads": "Grönsallad",
+            "special": {
+                "0": "1 p. -mjölk och mjölkprodukter ⛔️",
+                "1": "1 p. Fläsk 🚫"
+            }
+        },
+        "middag": {
+            "amount_guests": 3,
+            "leave_bq": "17:45:00",
+            "serve_time": "19:00:00",
+            "bread": true,
+            "starter": {
+                "amount_special": 2,
+                "food": "Rökt oxbringa med örtrostad levainbröd, ramslöksemulsion, fläderpicklad lök, vattenkrasse och friterade nässlor",
+                "special_food": {
+                    "1 p. -mjölk och mjölkprodukter ⛔️": [
+                        "laktosfri"
+                    ],
+                    "1 p. Fläsk 🚫": [
+                        "laktosfri"
+                    ]
+                }
+            },
+            "special": {
+                "0": "1 p. -mjölk och mjölkprodukter ⛔️",
+                "1": "1 p. Fläsk 🚫"
+            },
+            "main": {
+                "amount_special": 2,
+                "special_food": {
+                    "1 p. -mjölk och mjölkprodukter ⛔️": [],
+                    "1 p. Fläsk 🚫": [
+                        "vegan biff"
+                    ]
+                },
+                "food": "Glazerat kungsmussling med skummig champagnesås, snabbstekt pak choi och blomkålspuré"
+            },
+            "salads": {
+                "food": "Coleslaw",
+                "amount_special": 2,
+                "special_food": {
+                    "1 p. -mjölk och mjölkprodukter ⛔️": [],
+                    "1 p. Fläsk 🚫": []
+                }
+            }
+        }
+    },
+    "allergies": {
+        "dsd": {
+            "allerg": [
+                "mjölk och mjölkprodukter ⛔️"
+            ],
+            "kost": ""
+        },
+        "asdas": {
+            "allerg": "",
+            "kost": [
+                "Fläsk 🚫"
+            ]
+        }
+    }
+}

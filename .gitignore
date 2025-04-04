@@ -1,0 +1,7 @@
+.streamlit
+.venv
+.vscode
+cred
+service_account.json
+catering_exempel.docx
+Bokningsunderlag.xlsx
