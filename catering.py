@@ -375,6 +375,9 @@ with st.expander("LUNCH", expanded=False):
                 "salads", "---"))
             save_btn = st.form_submit_button("Spara")
 
+##################
+# TODO : connect save_btn!!!
+##################
     # else:
     #     st.session_state.result_dict["meals"].pop("lunch", None)
 
@@ -596,9 +599,18 @@ if st.button("Delete JSON"):
 def prep_special(data_dict, meal_type):
     data_special = []
     special_rows = 0
+    new_dict = {}
+
     if data_dict[meal_type].get("special_food"):
         for k, v in data_dict[meal_type]['special_food'].items():
-            data_special.append([k, ", ".join(v)])
+            vv = ", ".join(v)
+            if vv not in list(new_dict.keys()):
+                new_dict[vv] = k
+            else:
+                new_dict.update({vv: f"{new_dict[vv]}, {k}"})
+        print(" #  # #  special ", new_dict)
+        for v, k in new_dict.items(): # data_dict[meal_type]['special_food'].items():
+            data_special.append([k, v])
             special_rows += 1
     return data_special, special_rows
 

@@ -207,7 +207,6 @@ def input_main_info(daytime_checked, daytime, key_char):
                                                                "serve_time": st.session_state[f"serve_time_{key_char}"]})
 
 
-# TODO: Delete special entry from result dict if deleted from dataframe by user!!!
 
 def input_special(daytime, meal_type, key_char):
     if not st.session_state.result_dict.get("allergies"):
