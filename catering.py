@@ -22,11 +22,12 @@ from pandas.api.types import (
     is_numeric_dtype,
     is_object_dtype,
 )
+from streamlit_javascript import st_javascript
 from datetime import date, datetime
 from datetime import time
 from streamlit_gsheets import GSheetsConnection
 from db_con import CatSheet, UpdSheet
-from utils import filter_dataframe, show_df_with_checkboxes, process_choice, input_main_info, input_special  # upd_results
+from utils import filter_dataframe, show_df_with_checkboxes, process_choice, input_main_info, input_special, read_excel  # upd_results
 
 
 st.set_page_config(page_title="Hello", page_icon=":material/waving_hand:",
@@ -161,104 +162,71 @@ if "special_food" not in st.session_state:
     st.session_state["special_food"] = {}
 
 with st.expander("Allergier:", expanded=True):
-    allerg_form = st.form("allerg_names", clear_on_submit=True)
-    with allerg_form:
-        col1, col2, col3 = st.columns([0.3, 0.4, 0.4])
-        with col1:
-            pers_w_allerg = st.text_input(
-                "Name: ")
-            name_warning = st.empty()
 
-        with col2:
-            allerg_selection = st.multiselect(
-                "Allergier:", st.session_state.allerg.iloc[:, 0])
+    res_cont = st.empty()
 
-        with col3:
-            kostavv_selection = st.multiselect(
-                "Kostavvikelser:", st.session_state.allerg[st.session_state.allerg.loc[:, "Kostavvikelser"].notna()].iloc[:, 1])
-
-        submit = st.form_submit_button("Add")
-
-        if submit:
-            if pers_w_allerg == "":
-                with name_warning:
-                    st.warning("Name missing!")
-            else:
-                # st.write(allerg_selection)
-                # st.write(kostavv_selection)
-
-                if "allergies" not in st.session_state.result_dict:
-                    st.session_state.result_dict.update({"allergies": {}})
-                    # st.write(st.session_state.result_dict)
-
-                if pers_w_allerg not in st.session_state.result_dict["allergies"]:
-                    st.session_state.result_dict["allergies"].update(
-                        {pers_w_allerg: {"allerg": "", "kost": ""}})
-
-                if allerg_selection:
-                    st.session_state.result_dict["allergies"][pers_w_allerg].update(
-                        {"allerg": allerg_selection})
-
-                if kostavv_selection:
-
-                    st.session_state.result_dict["allergies"][pers_w_allerg].update(
-                        {"kost":  kostavv_selection})
-
-                # st.write(st.session_state.result_dict["allergies"])
+    chosen_idx, chosen_allergy = read_excel(st.session_state.allerg.iloc[:, 0], st.session_state.allerg[st.session_state.allerg.loc[:, "Kostavvikelser"].notna()].iloc[:, 1])
 
 
-def update_df():
-    pass
+    # allerg_form = st.form("allerg_names", clear_on_submit=True)
+    # with allerg_form:
+    #     col1, col2, col3, col4 = st.columns([0.1, 0.3, 0.3, 0.3])
+    #     with col1:
+    #         pers_w_allerg = st.text_input(
+    #             "Name: ", value=chosen_idx)
+    #         name_warning = st.empty()
 
+    #     with col2:
+    #         allerg_selection = st.multiselect(
+    #             "Allergier:", st.session_state.allerg.iloc[:, 0])
 
-# def check_val():
-#     st.write(fe_upd.iloc[fe_upd.loc[:,"choose"].idxmax(),0])   # TODO: FIX!!!
+    #     with col3:
+    #         kostavv_selection = st.multiselect(
+    #             "Kostavvikelser:", st.session_state.allerg[st.session_state.allerg.loc[:, "Kostavvikelser"].notna()].iloc[:, 1])
+            
+    #     with col4:
+    #         free_selection = st.text_input("Annat:", chosen_allergy)
 
-#     if fe_upd.loc[:, "choose"].idxmax() != 0:
-#         st.write("uncheck one!")
+    #     submit = st.form_submit_button("Add")
 
-# tab1, tab2, tab3, tab4 = st.tabs(
-#     ["Förmiddag", "Lunch", "Eftermiddag", "Middag"])
-# tab = st.segmented_control("Tillfällen:", ["Förmiddag", "Lunch", "Eftermiddag", "Middag"], selection_mode="single")
-
-# if tab == "Förmiddag":
-
-    # if st.checkbox("Förmiddag:"):
-    #     if "förmiddag" not in st.session_state.result_dict["meals"]:
-    #         st.session_state.result_dict["meals"].update({"förmiddag": {}})
-
-    #     input_main_info("förmiddag", "f")
-
-    #     with st.expander("Förmiddagsrätter:", expanded=True):
-
-    #         df_upd = show_df_with_checkboxes(
-    #             st.session_state.morning, "choose_fe", "fe_table", no_filter=True)
-    #         chosen_one = df_upd.loc[:, "choose"].idxmax()
-    #         st.write(chosen_one)
-    #         if df_upd.loc[:, "choose"].max():   # shows true or false
-    #             if df_upd.loc[:, "choose"].value_counts().get(True) > 1:
-    #                 st.write("unselect one!")
-    #             st.write(df_upd.iloc[chosen_one, 1])
-    #             st.session_state.result_dict["meals"]["förmiddag"].update(
-    #                 {"food": df_upd.iloc[chosen_one, 1]})
-
-    #         # st.write(st.session_state.result_dict)
+    #     if submit:
+    #         if pers_w_allerg == "":
+    #             with name_warning:
+    #                 st.warning("Name missing!")
     #         else:
-    #             st.session_state.result_dict["meals"]["förmiddag"].update(
-    #                 {"food": ""})
-    #         # st.write(st.session_state.result_dict)
+    #             # st.write(allerg_selection)
+    #             # st.write(kostavv_selection)
 
-    #     with st.expander("Specialkost förmiddag:", expanded=True):
-    #         input_special("förmiddag", "f")
-    # else:
-    #     st.session_state.result_dict["meals"].pop("förmiddag", None)
+    #             if "allergies" not in st.session_state.result_dict:
+    #                 st.session_state.result_dict.update({"allergies": {}})
+    #                 # st.write(st.session_state.result_dict)
 
-    # st.divider()
-# with tab2:
+    #             if pers_w_allerg not in st.session_state.result_dict["allergies"]:
+    #                 st.session_state.result_dict["allergies"].update(
+    #                     {pers_w_allerg: {"allerg": "", "kost": ""}})
 
-with st.expander("LUNCH", expanded=False):
+    #             if allerg_selection:
+    #                 st.session_state.result_dict["allergies"][pers_w_allerg].update(
+    #                     {"allerg": allerg_selection})
+
+    #             if kostavv_selection:
+
+    #                 st.session_state.result_dict["allergies"][pers_w_allerg].update(
+    #                     {"kost":  kostavv_selection})
+
+if any(["expander_state_m", "expander_state_l"]) not in st.session_state:
+    st.session_state["expander_state_l"] = False
+    st.session_state["expander_state_m"] = False
+
+
+st.markdown('<div id="lunch-top" style="color:white;">Lunch top</div>', unsafe_allow_html=True)
+
+# x = st_javascript("(function() {window.parent.document.getElementById('top-of-expander-lunch').scrollIntoView({behavior: 'smooth'})})()")
+# print(x)
+with st.expander("LUNCH", expanded=st.session_state["expander_state_l"]):
     yes_lunch = st.checkbox("Servera lunch", key="SERV")
     if yes_lunch:
+        st.session_state["expander_state_l"] = True
         st.success("Lunch kommer att serveras.")
         if "lunch" not in st.session_state.result_dict["meals"]:
             st.session_state.result_dict["meals"].update(
@@ -267,19 +235,10 @@ with st.expander("LUNCH", expanded=False):
         st.error("Lunch kommer INTE att serveras.")
         st.session_state.result_dict["meals"].pop("lunch", None)
 
-      #  with st.expander("Lunch choices:", expanded=True):
-
-        # st.session_state["yes_lunch"] = True
-        # print(st.session_state["yes_lunch"])
 
     input_main_info(yes_lunch, "lunch", "l")
 
-#    lunch_tab = st.segmented_control("", ["Lunch Sommar 2025", "Lunch Höst 2024", "Visa stora listan", "Sallad"], selection_mode="single")
-    # tab_l1, tab_l2, tab_l3, tab_l4 = st.tabs(
-    #     ["Lunch Sommar 2025", "Lunch Höst 2024", "Visa stora listan", "Sallad"])
 
-    # with tab_l1:
- #   if lunch_tab == "Lunch Sommar 2025":
     col0, col1, col2, col3 = st.columns([0.1, 0.33, 0.33, 0.33])
     tab_l1, tab_l2, tab_l3, tab_l4 = st.tabs(
         ["Lunch Sommar 2025", "Lunch Höst 2024", "Visa stora listan", "Sallad"])
@@ -287,61 +246,16 @@ with st.expander("LUNCH", expanded=False):
         # if col1.checkbox("Lunch Sommar 2025", key="lunch_chk1"):
         process_choice(yes_lunch, st.session_state.lunch25, "lunch",
                        "main", "Rätt", "lunch25_table", no_filter=True)
-        # df_upd_1 = show_df_with_checkboxes(
-        #     st.session_state.lunch25, "choose_lunch25", "lunch25_table", no_filter=True)
-        # chosen_one = df_upd_1.loc[:, "choose"].idxmax()
-        # #st.write(chosen_one)
-        # if df_upd_1.loc[:, "choose"].max():   # shows true or false
-        #     if df_upd_1.loc[:, "choose"].value_counts().get(True) > 1:
-        #         st.write("unselect one!")
-        #     st.write(df_upd_1.iloc[chosen_one]["Rätt"])
-        #     st.session_state.result_dict["meals"]["lunch"].update(
-        #         {"main": df_upd_1.iloc[chosen_one]["Rätt"]})
 
-    # if col2.checkbox("Lunch Höst 2024", key="lunch_chk2"):
+
     with tab_l2:
         process_choice(yes_lunch, st.session_state.lunch24, "lunch",
                        "main", "Rätt", "lunch24_table", no_filter=True)
 
-    #     df_upd_2 = show_df_with_checkboxes(
-    #         st.session_state.lunch24, "choose_lunch24", "lunch24_table", no_filter=True)
-    #     chosen_one = df_upd_2.loc[:, "choose"].idxmax()
-    #    # st.write(chosen_one)
-    #     if df_upd_2.loc[:, "choose"].max():   # shows true or false
-    #         if df_upd_2.loc[:, "choose"].value_counts().get(True) > 1:
-    #             st.write("unselect one!")
-    #         st.write(df_upd_2.iloc[chosen_one]["Rätt"])
-    #         st.session_state.result_dict["meals"]["lunch"].update(
-    #             {"main": df_upd_2.iloc[chosen_one]["Rätt"]})
-
-#   st.write(st.session_state.result_dict)
-
-    # st.dataframe(filter_dataframe(lunch24, "lunch24_table"))
     with tab_l3:
         # Special index retrieval for filtered lists!!!
         process_choice(yes_lunch, st.session_state.all_dishes, "lunch",
                        "main", "Rätt", "alldishes_table", no_filter=False)
-
-        # df_upd_3 = show_df_with_checkboxes(
-        #     st.session_state.all_dishes, "choose_all", "alldishes_table", no_filter=False)
-        # if len(df_upd_3):
-        #     chosen_one = df_upd_3.loc[:, "choose"].idxmax()
-
-        #     if df_upd_3.loc[:, "choose"].max():   # shows true or false
-        #         if df_upd_3.loc[:, "choose"].value_counts().get(True) > 1:
-        #             st.write("unselect one!")
-
-        #         chosen_meal = df_upd_3[df_upd_3.loc[:, "idx_key"] == chosen_one].iloc[0]["Rätt"]
-        #         st.write(chosen_meal)
-        #         st.session_state.result_dict["meals"]["lunch"].update(
-        #             {"main": {"meal": chosen_meal}})  # TODO: create function for all!! turn string into dict!!
-
-        # st.session_state.result_dict["meals"]["lunch"].update(
-        #     {"main": df_upd_3.iloc[chosen_one, 1]})
-
-    # if not (st.session_state.lunch_chk1 or st.session_state.lunch_chk2 or st.session_state.lunch_chk3):
-    #     st.session_state.result_dict["meals"]["lunch"].update(
-    #         {"main": ""})
 
     with tab_l4:
         if st.checkbox("Sallad", key="lunch_salad"):
@@ -369,54 +283,30 @@ with st.expander("LUNCH", expanded=False):
         lunch_summary = st.form(key="lunch_summary", clear_on_submit=False)
 
         with lunch_summary:
-            st.text_area(
+            lunch_mod = st.text_area(
                 "Vald lunchrätt:", value=st.session_state.result_dict["meals"]["lunch"]["main"].get("food", "---"))
-            st.text_area("Vald sallad:", value=st.session_state.result_dict["meals"]["lunch"].get(
+            salad_mod = st.text_area("Vald sallad:", value=st.session_state.result_dict["meals"]["lunch"].get(
                 "salads", "---"))
             save_btn = st.form_submit_button("Spara")
+            if save_btn:
+                st.session_state.result_dict["meals"]["lunch"]["main"]["food"] = lunch_mod
+                st.session_state.result_dict["meals"]["lunch"]["main"]["salads"] = salad_mod
+
+    st.markdown("<div class='btn-link'><a href='#lunch-top' target='_self' style='display: inline-block; width: 100%; text-decoration: none; text-align: center; color: black; font-weight: bold;'> ⏫ UP ⏫ </a></div>", unsafe_allow_html=True)
+
 
 ##################
 # TODO : connect save_btn!!!
 ##################
-    # else:
-    #     st.session_state.result_dict["meals"].pop("lunch", None)
-
-    # st.write(st.session_state.result_dict)
-
-   # st.divider()
-
-# with tab3:
-#     if st.checkbox("Eftermiddag:"):
-#         if "eftermiddag" not in st.session_state.result_dict["meals"]:
-#             st.session_state.result_dict["meals"].update({"eftermiddag": {}})
-#         input_main_info("eftermiddag", "e")
-
-#         with st.expander("Eftermiddag choices:", expanded=True):
-
-#             df_upd = show_df_with_checkboxes(
-#                 st.session_state.efterm, "choose_all", "eftermiddag_table", no_filter=True)
-#             chosen_one = df_upd.loc[:, "choose"].idxmax()
-#             st.write(chosen_one)
-#             if df_upd.loc[:, "choose"].max():   # shows true or false
-#                 if df_upd.loc[:, "choose"].value_counts().get(True) > 1:
-#                     st.write("unselect one!")
-#                 st.write(df_upd.iloc[chosen_one, 1])
-#                 st.session_state.result_dict["meals"]["eftermiddag"].update(
-#                     {"food": df_upd.iloc[chosen_one, 1]})
-
-#         with st.expander("Specialkost eftermiddag:", expanded=True):
-#             input_special("eftermiddag", "e")
-
-#     else:
-#         st.session_state.result_dict["meals"].pop("eftermiddag", None)
-
-#     st.divider()
 
 # TODO: Add process_choice to middag!!!
 
-with st.expander("MIDDAG", expanded=False):
+st.markdown('<div id="middag-top" style="color:white;">Middag top</div>', unsafe_allow_html=True)
+
+with st.expander("MIDDAG", expanded=st.session_state["expander_state_m"]):
     yes_middag = st.checkbox("Servera middag", key="SERV_M")
     if yes_middag:
+        st.session_state["expander_state_m"] = True
         st.success("Middag kommer att serveras.")
         if "middag" not in st.session_state.result_dict["meals"]:
             st.session_state.result_dict["meals"].update({"middag": {}})
@@ -426,12 +316,10 @@ with st.expander("MIDDAG", expanded=False):
 
     input_main_info(yes_middag, "middag", "m")
 
-    # with st.expander("Middag choices:", expanded=True):
     tab_m1, tab_m2, tab_m3, tab_m4 = st.tabs(
         ["Förrätt", "Varmrätt", "Dessert", "Sallad + Bröd"])
-
+    
     with tab_m1:
-
         if st.checkbox("Förrätt"):
             if yes_middag and "starter" not in st.session_state.result_dict["meals"]["middag"]:
                 st.session_state.result_dict["meals"]["middag"]["starter"] = {}
@@ -441,37 +329,11 @@ with st.expander("MIDDAG", expanded=False):
             if col1.checkbox("Kväll Sommar 2025", key="kvs25_f"):
                 process_choice(yes_middag, st.session_state.kvs25.iloc[:]["Förrätt"].to_frame(), "middag", "starter", "Förrätt", "kvs25_f_f", no_filter=True)
 
-                # st.dataframe(kvs25.iloc[:, 1])
-            #     print(st.session_state.kvs25.iloc[:]["Förrätt"])
-            #     df_upd = show_df_with_checkboxes(
-            #         st.session_state.kvs25.iloc[:]["Förrätt"].to_frame(), "choose_starter", "kvs25_f_f", no_filter=True)
-            #     print(df_upd)
-            #     chosen_one = df_upd.loc[:, "choose"].idxmax()
-            #    # st.write(chosen_one)
-            #     if df_upd.loc[:, "choose"].max():   # shows true or false
-            #         if df_upd.loc[:, "choose"].value_counts().get(True) > 1:
-            #             st.write("unselect one!")
-            #         st.write(df_upd.iloc[chosen_one]["Förrätt"])
-            #         st.session_state.result_dict["meals"]["middag"].update(
-            #             {"starter": df_upd.iloc[chosen_one]["Förrätt"]})
-            # st.dataframe(filter_dataframe(kvs25))
 
             if col2.checkbox("Kväll Höst 2024", key="kvh24_f"):
                 process_choice(yes_middag, st.session_state.kvh24.iloc[:]["Förrätt"].to_frame(), "middag", "starter", "Förrätt", "kvh24_f_f", no_filter=True)
 
-            #     df_upd = show_df_with_checkboxes(
-            #         st.session_state.kvh24.iloc[:]["Förrätt"].to_frame(), "choose_starter", "kvh24_f_f", no_filter=True)
-            #     chosen_one = df_upd.loc[:, "choose"].idxmax()
-            #    # st.write(chosen_one)
-            #     if df_upd.loc[:, "choose"].max():   # shows true or false
-            #         if df_upd.loc[:, "choose"].value_counts().get(True) > 1:
-            #             st.write("unselect one!")
-            #         st.write(df_upd.iloc[chosen_one]["Förrätt"])
-            #         st.session_state.result_dict["meals"]["middag"].update(
-            #             {"starter": df_upd.iloc[chosen_one, 1]})
-            # st.dataframe(kvh24.iloc[:, 1].to_frame())
 
-            # with st.expander("Specialkost middag förrätt:", expanded=False):
             if yes_middag:
                 input_special("middag", "starter", "ms")
 
@@ -480,86 +342,106 @@ with st.expander("MIDDAG", expanded=False):
                 st.session_state.result_dict["meals"]["middag"].pop(
                     "starter")
 
-    if st.checkbox("Varmrätt"):
-        if yes_middag and "main" not in st.session_state.result_dict["meals"]["middag"]:
-            st.session_state.result_dict["meals"]["middag"]["main"] = {}
+    with tab_m2:
+        if st.checkbox("Varmrätt"):
+            if yes_middag and "main" not in st.session_state.result_dict["meals"]["middag"]:
+                st.session_state.result_dict["meals"]["middag"]["main"] = {}
 
-        col0, col1, col2, col3 = st.columns([0.1, 0.33, 0.33, 0.33])
+            col0, col1, col2, col3 = st.columns([0.1, 0.33, 0.33, 0.33])
 
-        if col1.checkbox("Kväll Sommar 2025", key="kvs25_v"):
-            process_choice(yes_middag, st.session_state.kvs25.iloc[:]["Varmrätt"].to_frame(
-            ), "middag", "main", "Varmrätt", "kvs25_v_f", no_filter=True)
+            if col1.checkbox("Kväll Sommar 2025", key="kvs25_v"):
+                process_choice(yes_middag, st.session_state.kvs25.iloc[:]["Varmrätt"].to_frame(
+                ), "middag", "main", "Varmrätt", "kvs25_v_f", no_filter=True)
 
-        if col2.checkbox("Kväll Höst 2024", key="kvh24_v"):
-            process_choice(yes_middag, st.session_state.kvh24.iloc[:]["Varmrätt"].to_frame(
-            ), "middag", "main", "Varmrätt", "kvh24_v_f", no_filter=True)
+            if col2.checkbox("Kväll Höst 2024", key="kvh24_v"):
+                process_choice(yes_middag, st.session_state.kvh24.iloc[:]["Varmrätt"].to_frame(
+                ), "middag", "main", "Varmrätt", "kvh24_v_f", no_filter=True)
 
-        if yes_middag:
-            input_special("middag", "main", "mm")
-
-    else:
-        if yes_middag and "main" in st.session_state.result_dict["meals"]["middag"]:
-            st.session_state.result_dict["meals"]["middag"].pop("main")
-
-    if st.checkbox("Dessert"):
-        if yes_middag and "dessert" not in st.session_state.result_dict["meals"]["middag"]:
-            st.session_state.result_dict["meals"]["middag"]["dessert"] = {}
-        col0, col1, col2 = st.columns([0.1, 0.45, 0.45])
-
-        if col1.checkbox("Kväll Sommar 2025", key="kvs25_d"):
-            process_choice(yes_middag, st.session_state.kvs25.iloc[:]["Dessert"].to_frame(
-            ), "middag", "dessert", "Dessert", "kvs25_d_f", no_filter=True)
-        # st.dataframe(kvs25.iloc[:, 3].to_frame())
-        # st.dataframe(filter_dataframe(kvs25))
-
-        if col2.checkbox("Kväll Höst 2024", key="kvh24_d"):
-            process_choice(yes_middag, st.session_state.kvh24.iloc[:]["Dessert"].to_frame(
-            ), "middag", "dessert", "Dessert", "kvh24_d_f", no_filter=True)
-        # st.dataframe(kvh24.iloc[:, 3].to_frame())
-
-        # with st.expander("Specialkost middag dessert:", expanded=False):
-        if yes_middag:
-            input_special("middag", "dessert", "md")
-
-    else:
-        if yes_middag and "dessert" in st.session_state.result_dict["meals"]["middag"]:
-            st.session_state.result_dict["meals"]["middag"].pop(
-                "dessert")
-
-    col_s1, col_s2 = st.columns(2)
-    with col_s1:
-        yes_middag_salads = st.checkbox("Sallad", key="dinner_salad")
-        if yes_middag_salads:
-            salad_choices = st.multiselect(
-                "Sallader:", st.session_state.salads, key="dinner_salad_selection")
-            salad_mod = st.text_input("Salladurval:", ", ".join( 
-                salad_choices), key="dinner_salad_selection_updated")
             if yes_middag:
-                if salad_choices:
-                    if "salads" not in st.session_state.result_dict["meals"]["middag"]:
-                        st.session_state.result_dict["meals"]["middag"]["salads"] = {"food": salad_mod}
+                input_special("middag", "main", "mm")
+
+        else:
+            if yes_middag and "main" in st.session_state.result_dict["meals"]["middag"]:
+                st.session_state.result_dict["meals"]["middag"].pop("main")
+
+    with tab_m3:
+        if st.checkbox("Dessert"):
+            if yes_middag and "dessert" not in st.session_state.result_dict["meals"]["middag"]:
+                st.session_state.result_dict["meals"]["middag"]["dessert"] = {}
+            col0, col1, col2 = st.columns([0.1, 0.45, 0.45])
+
+            if col1.checkbox("Kväll Sommar 2025", key="kvs25_d"):
+                process_choice(yes_middag, st.session_state.kvs25.iloc[:]["Dessert"].to_frame(
+                ), "middag", "dessert", "Dessert", "kvs25_d_f", no_filter=True)
+            # st.dataframe(kvs25.iloc[:, 3].to_frame())
+            # st.dataframe(filter_dataframe(kvs25))
+
+            if col2.checkbox("Kväll Höst 2024", key="kvh24_d"):
+                process_choice(yes_middag, st.session_state.kvh24.iloc[:]["Dessert"].to_frame(
+                ), "middag", "dessert", "Dessert", "kvh24_d_f", no_filter=True)
+            # st.dataframe(kvh24.iloc[:, 3].to_frame())
+
+            # with st.expander("Specialkost middag dessert:", expanded=False):
+            if yes_middag:
+                input_special("middag", "dessert", "md")
+
+        else:
+            if yes_middag and "dessert" in st.session_state.result_dict["meals"]["middag"]:
+                st.session_state.result_dict["meals"]["middag"].pop(
+                    "dessert")
+
+    with tab_m4:
+        col_s1, col_s2 = st.columns(2)
+        with col_s1:
+            yes_middag_salads = st.checkbox("Sallad", key="dinner_salad")
+            if yes_middag_salads:
+                salad_choices = st.multiselect(
+                    "Sallader:", st.session_state.salads, key="dinner_salad_selection")
+                salad_mod = st.text_input("Salladurval:", ", ".join( 
+                    salad_choices), key="dinner_salad_selection_updated")
+                if yes_middag:
+                    if salad_choices:
+                        if "salads" not in st.session_state.result_dict["meals"]["middag"]:
+                            st.session_state.result_dict["meals"]["middag"]["salads"] = {"food": salad_mod}
+                        else:
+                            st.session_state.result_dict["meals"]["middag"]["salads"].update({"food": salad_mod})
+                    # st.session_state.result_dict["meals"]["middag"]["salads"] = salad_mod
                     else:
-                        st.session_state.result_dict["meals"]["middag"]["salads"].update({"food": salad_mod})
-                   # st.session_state.result_dict["meals"]["middag"]["salads"] = salad_mod
-                else:
-                    st.session_state.result_dict["meals"]["middag"]["salads"] = {"food": "---"}
+                        st.session_state.result_dict["meals"]["middag"]["salads"] = {"food": "---"}
 
-        else:
-            if yes_middag and "salads" in st.session_state.result_dict["meals"]["middag"]:
-                st.session_state.result_dict["meals"]["middag"].pop("salads")
+            else:
+                if yes_middag and "salads" in st.session_state.result_dict["meals"]["middag"]:
+                    st.session_state.result_dict["meals"]["middag"].pop("salads")
 
-    with col_s2:
-        bread_choice = st.checkbox("Bröd och smör")
-        if bread_choice and yes_middag:
-            st.write("Bröd och smör behövs.")
-            st.session_state.result_dict["meals"]["middag"]["bread"] = True
-        else:
-            st.write("Bröd och smör behövs inte.")
-            if yes_middag:
-                st.session_state.result_dict["meals"]["middag"]["bread"] = False
+        with col_s2:
+            bread_choice = st.checkbox("Bröd och smör")
+            if bread_choice and yes_middag:
+                st.write("Bröd och smör behövs.")
+                st.session_state.result_dict["meals"]["middag"]["bread"] = True
+            else:
+                st.write("Bröd och smör behövs inte.")
+                if yes_middag:
+                    st.session_state.result_dict["meals"]["middag"]["bread"] = False
 
-    if yes_middag and yes_middag_salads:
-        input_special("middag", "salads", "msal")
+        if yes_middag and yes_middag_salads:
+            input_special("middag", "salads", "msal")
+
+    #st.link_button("[Middag top]", url='#middag-top', )
+    st.markdown("<div class='btn-link'><a href='#middag-top' target='_self' style='display: inline-block; width: 100%; text-decoration: none; text-align: center; color: black; font-weight: bold;'> ⏫ UP ⏫ </a></div>", unsafe_allow_html=True)
+    
+
+    # if st.button("Scroll up", key="scroll_up_m"):
+    #     # Inject JS to scroll to anchor
+    #     st.session_state["scroll_to_expander_m"] = True
+    #     # if "expander_state" not in st.session_state:
+    #     st.session_state["expander_state_m"] = True
+
+        #st.rerun()
+
+    # if st.session_state.scroll_to_expander_m:
+    #    # js_test = st_javascript("window.parent.document.getElementById('top-of-expander-middag').scrollIntoView({behavior: 'smooth'});")
+    #     #st.markdown({js_test})
+    #     st.session_state.scroll_to_expander_m = False  # reset it so it only scrolls once
 
 
 # st.write(st.session_state.result_dict)
@@ -569,6 +451,7 @@ with st.expander("MIDDAG", expanded=False):
 
 # if st.checkbox("Merge"):
 #     st.session_state.upd_conn.merge_cells("A9:B9")
+
 
 
 def json_serial(obj):
@@ -613,6 +496,7 @@ def prep_special(data_dict, meal_type):
             data_special.append([k, v])
             special_rows += 1
     return data_special, special_rows
+
 
 if st.button("Write to sheet"):
    # st.dataframe(st.session_state.upd_conn.read())

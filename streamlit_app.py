@@ -58,15 +58,26 @@ def run():
                 .stExpander details {
 
                     border: 2px solid green;
-                    border-radius: 5px;
+                    border-radius: 7px;
                 }
                 .stExpander details summary {
-                    background-color: #9cf06e;
+                    background-color: #91CE8F;
                     color: black; # Adjust this for expander header color
                     border: 2px solid green;
                     border-radius: 5px;
-                
                 }
+
+                .btn-link {
+                    background-color: #91CE8F;
+                    border-radius: 7px;
+                    width: calc(100% + 32px);
+                    margin-left: -16px;
+                }
+
+                .btn-link:hover {
+                background-color: #63AC61;
+                }
+
                 .streamlit-expanderContent {
                     background-color: white;
                     color: black; # Expander content color
@@ -78,13 +89,24 @@ def run():
 
                 
                 [class*=special_food_result] * > input {
-                background: rgba(33, 195, 84, 0.1);
-                font-weight: bold;}
+                    background: rgba(33, 195, 84, 0.1);
+                    font-weight: bold;
+                }
                 [class*=special_food_result] * > label  p {
-                font-weight: bold;}
+                    font-weight: bold;
+                }
 
-                summary * {
-                font-weight: bold;
+                .stExpander details summary * {
+                    font-weight: bold;
+                    font-size: 1.5rem;
+                }
+
+                .stExpander details summary:hover {
+                    background-color: #63AC61;
+                }
+                
+                .stExpander details summary:hover * {
+                    color: #F9F7C8;
                 }
 
                 table * {
@@ -92,16 +114,16 @@ def run():
                 }
 
                 .custom-info {
-                padding: 5px;
-                line-height: 1.6rem;
-                border-radius: 5px;
-                color: #183950;
-                background-color: rgba(186, 217, 240, 0.6);
+                    padding: 5px;
+                    line-height: 1.6rem;
+                    border-radius: 5px;
+                    color: #183950;
+                    background-color: rgba(186, 217, 240, 0.6);
                 }
 
                 .center-element {
-                padding: auto;
-                margin: auto;
+                    padding: auto;
+                    margin: auto;
                 }
 
                /* div:has(> [class*=input_amount_special])  {
@@ -113,20 +135,58 @@ def run():
                 }
 
                 .special-entry-warning {
-                color: rgb(110, 89, 24);
-                background-color: rgba(255, 227, 18, 0.1);
-                font-weight: bold;
-                color: rgb(146, 108, 5);
-                padding: 1rem;
-                margin-bottom: 18px;
+                    color: rgb(110, 89, 24);
+                    background-color: rgba(255, 227, 18, 0.1);
+                    font-weight: bold;
+                    color: rgb(146, 108, 5);
+                    padding: 1rem;
+                    margin-bottom: 18px;
                 }
 
                 .stFormSubmitButton > button,
                 .stButton > button {
-                background-color: rgba(199, 199, 236, 0.3) !important;
+                    background-color: rgba(210, 177, 235, 0.5) !important;
+                }
+
+                button[role="tab"] * {
+                    font-weight: bold;
+                    font-size: 1.5rem;
+                    padding-right: 25px;
+                }
+
+                button:hover {
+                    background-color: grey !important;
+                }
+
+                button[role="tab"]:hover {
+                    background-color: #D8F6EF !important;
+                }
+
+                button[role="tab"]:hover p {
+                    color: black !important;
+
+                }
+
+                button[role="tab"]:focus {
+                    background-color: #D8F6EF !important;
+
+                }
+
+                button[role="tab"]:focus p {
+                    color: #203579 !important;
+
+                }
+
+                button:hover p {
+                    color: rgba(210, 177, 235, 0.5) !important;
+                }
+
+                button:focus p {
+                    color: black !important;
                 }
 
                 </style>
+    
                 """, unsafe_allow_html=True)
                     # div:has(.st-key-customer_input_container)) {
                 #     padding: 0rem;
