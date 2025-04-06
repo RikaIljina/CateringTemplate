@@ -194,7 +194,7 @@ def input_main_info(daytime_checked, daytime, key_char):
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         guest_amount = st.number_input(
-        "Antal personer:", value=st.session_state.guest_amount, format="%i", step=1,  key=f"guest_amount_{key_char}")
+        "Antal personer:", value=st.session_state[f'guest_amount_{st.session_state["guest_key"]}'], format="%i", step=1,  key=f"guest_amount_{key_char}")
         if daytime_checked:
             st.session_state.result_dict["meals"][daytime].update(
                 {"amount_guests": st.session_state[f"guest_amount_{key_char}"]})
@@ -228,10 +228,11 @@ def input_special(daytime, meal_type, key_char):
     current_avv = ""
     if "allergies" in st.session_state.result_dict:
         for pers, allerg in st.session_state.result_dict["allergies"].items():
-            new_df[pers] = {"Allergier": ", ".join(sorted(allerg["allerg"])), "Kostavvikelser": ", ".join(sorted(allerg["kost"]))}
+            new_df[pers] = {"Allergier": ", ".join(sorted(allerg["allerg"])), "Kostavvikelser": ", ".join(sorted(allerg["kost"])), "Extra": allerg["extra"]}
             current_allerg.extend(allerg["allerg"])
             current_kost.extend(allerg["kost"])
-            current_avv = f"{"-" + ", -".join(sorted(allerg["allerg"])) + f'{" || " + ", ".join(sorted(allerg["kost"])) if allerg["kost"] else ""}' if allerg["allerg"] else ", ".join(sorted(allerg["kost"]))}"
+            extra_info = allerg["extra"]
+            current_avv = f"{", ".join(sorted(allerg["allerg"])) + f'{" ⛔ || " + ", ".join(sorted(allerg["kost"])) if allerg["kost"] else " ⛔"}' if allerg["allerg"] else ", ".join(sorted(allerg["kost"]))}{" || " + extra_info if extra_info else ""}"
             if current_avv in st.session_state["summary_allerg"]:
                 st.session_state["summary_allerg"][current_avv] += 1
             else:
@@ -282,7 +283,7 @@ def input_special(daytime, meal_type, key_char):
             #     st.session_state["sum_df_upd"] = show_allerg_summary(st.session_state["summary_allerg"], f"{daytime}_{key_char}_{st.session_state["de_key"]}")
             #     #st.dataframe(st.session_state["sum_df_upd"])
 
-        col_btn_1, col_btn_2, _ = st.columns([0.2, 0.2, 0.6])
+        col_btn_1, col_btn_2, _ = st.columns([0.4, 0.4, 0.2])
         save_allerg = col_btn_1.button("Spara", key=f"save_special_{daytime}_{key_char}")
         reset_button = col_btn_2.button("Reset", key=f"reset_special_{daytime}_{key_char}")
     if save_allerg:
@@ -338,13 +339,27 @@ def input_special(daytime, meal_type, key_char):
             if not st.session_state.result_dict["meals"][daytime][meal_type]["special_food"].get(e):
                 st.session_state.result_dict["meals"][daytime][meal_type]["special_food"][e] = []
            # st.dataframe(show_special_selection(x))
-
-            chosen_special_cont = st.empty()
-            spec_food_result = chosen_special_cont.text_input(f"Vald kost till {e}:", value="; ".join(st.session_state.result_dict["meals"][daytime][meal_type]["special_food"][e]), key=f"special_food_result_{key_char}_{x}_{st.session_state['sp_inp_key']}")
-            
+            col_sp1, col_sp2 = st.columns([0.6, 0.4])
+            with col_sp1:
+                chosen_special_cont = st.empty()
+                spec_food_result = chosen_special_cont.text_input(f"Vald kost till {e}:", value="; ".join(st.session_state.result_dict["meals"][daytime][meal_type]["special_food"][e]), key=f"special_food_result_{key_char}_{x}_{st.session_state['sp_inp_key']}")
+            with col_sp2:
+                updd = col_sp2.button("Uppdatera", key=f"special_food_result_upd_{key_char}_{x}")
+                if updd:
+                    st.success("Uppdaterad!")
+                    if st.session_state[f"special_food_result_{key_char}_{x}_{st.session_state['sp_inp_key']}"] == "":
+                        st.session_state.result_dict["meals"][daytime][meal_type]["special_food"][e] = []
+                    else:
+                        st.session_state.result_dict["meals"][daytime][meal_type]["special_food"][e] = sorted(list(filter(None, set(str(st.session_state[f"special_food_result_{key_char}_{x}_{st.session_state['sp_inp_key']}"]).strip().split("; ")))))
+                        #print(st.session_state.result_dict["meals"][daytime][meal_type]["special_food"][e])
+                        st.session_state["sp_inp_key"] = str(uuid.uuid4())
+                        
+                        chosen_special_cont.empty()
+                        chosen_special_cont.text_input(f"Vald kost till {e}:", value=f"{'; '.join(st.session_state.result_dict["meals"][daytime][meal_type]["special_food"][e])}", key=f"special_food_result_{key_char}_{x}_{st.session_state['sp_inp_key']}")
+                        
 
             with st.form(key=f"form_special_selection_{key_char}_{x}", clear_on_submit=True):
-                col_s1, col_s2, col_s3, col_s4 = st.columns([0.3, 0.3, .3, 0.1])
+                col_s1, col_s2, col_s3, col_s4 = st.columns([0.3, 0.3, 0.3, 0.1])
                 with col_s1:
                     hur = " ".join(list(st.multiselect("Maträtt:",  ['glutenfri', 'laktosfri', 'vegan'], placeholder="Glutenfri...", key=f'spec_food_select_adj_{key_char}_{x}'))).strip()
                 # with col_s2:
@@ -377,7 +392,7 @@ def input_special(daytime, meal_type, key_char):
                 st.session_state["sp_inp_key"] = str(uuid.uuid4())
                 chosen_special_cont.empty()
                 spec_food_result = chosen_special_cont.text_input(f"Vald kost till {e}:", value=food_string, key=f"special_food_result_{key_char}_{x}_{st.session_state['sp_inp_key']}")
-
+               
 
 #            spec_food_result = st.text_input(f"Vald kost till {e}:", value=f'{"; ".join(food_string)}', key=f"special_food_result_{key_char}_{x}")
             if not spec_food_result:
@@ -387,19 +402,7 @@ def input_special(daytime, meal_type, key_char):
             else:
                 sf_result.html("<span style='color: #B9C60B;'>... urval av specialkost påbörjat ...</span>")
 
-            updd = st.button("Uppdatera", key=f"special_food_result_upd_{key_char}_{x}")
-            if updd:
-                st.success("Uppdaterad!")
-                if st.session_state[f"special_food_result_{key_char}_{x}_{st.session_state['sp_inp_key']}"] == "":
-                    st.session_state.result_dict["meals"][daytime][meal_type]["special_food"][e] = []
-                else:
-                    st.session_state.result_dict["meals"][daytime][meal_type]["special_food"][e] = sorted(list(filter(None, set(str(st.session_state[f"special_food_result_{key_char}_{x}_{st.session_state['sp_inp_key']}"]).strip().split("; ")))))
-                    #print(st.session_state.result_dict["meals"][daytime][meal_type]["special_food"][e])
-                    st.session_state["sp_inp_key"] = str(uuid.uuid4())
-                    
-                    chosen_special_cont.empty()
-                    chosen_special_cont.text_input(f"Vald kost till {e}:", value=f"{'; '.join(st.session_state.result_dict["meals"][daytime][meal_type]["special_food"][e])}", key=f"special_food_result_{key_char}_{x}_{st.session_state['sp_inp_key']}")
-                    
+           
             st.divider()
 
 
@@ -419,8 +422,19 @@ def update_allergy_summary(daytime, meal_type, new_special, sum_df_upd):
 #            for idx, entry in zip(list(sum_df_upd.index), list(sum_df_upd.loc[:, "entry"])):
     st.session_state.result_dict["meals"][daytime]["special"] = {idx: entry for idx, entry in zip(list(sum_df_upd.index), list(sum_df_upd.loc[:, "entry"]))}
 
+def remove_default(allergies_list):
+    result = []
+    for el in allergies_list:
+        if el in ["Nej", "nej", "-", "--", "---", "Inga allergier", "inga allergier", "inga", "Inga"]:
+            result.append(el)
+    return result
 
-def read_excel(allerg_select, kostavv_select):
+def read_excel(guest_cont, allerg_select, kostavv_select):
+
+#TODO: Manual entering of allergy data!
+#TODO: Adjust excel reading if neded!
+
+
    # st.markdown("### Upload Excel and Read Specific Range")
 
 # File uploader
@@ -430,120 +444,136 @@ def read_excel(allerg_select, kostavv_select):
         # Read the specific range A20:C20 (1-based index) from the first sheet
         df_raw = pd.ExcelFile(uploaded_file)
 
-        df = pd.read_excel(uploaded_file, sheet_name=0, header=None, usecols=list(range(0, df_raw.book['Blad1'].max_column)), skiprows=6, nrows=df_raw.book['Blad1'].max_row - 15)
         
         with st.container(border=True):
-            col1, col2, col3 = st.columns([0.1, 0.1, 0.8])
-            hide_file = col2.button("Hide file")
-            show_file = col1.button("Show file")
+            if "raw_file_toggle" not in st.session_state:
+                st.session_state["raw_file_toggle"] = False
+            col1, col2 = st.columns([0.2, 0.8])
+            # hide_file = col2.button("Hide file")
+            # show_file = col1.button("Show file")
+            toggle_file = col1.toggle("Show source file")
             full_file = st.empty()
 
-            if show_file:
+            if toggle_file:
                 df_full = pd.read_excel(uploaded_file, sheet_name=0, header=None, usecols=list(range(0, df_raw.book['Blad1'].max_column)), skiprows=0, nrows=df_raw.book['Blad1'].max_row)
                 full_file.dataframe(df_full)
-            if hide_file:
+
+            else:
                 full_file.empty()
-    
+
+        df = pd.read_excel(uploaded_file, sheet_name=0, header=None, usecols=list(range(0, df_raw.book['Blad1'].max_column)), skiprows=6, nrows=df_raw.book['Blad1'].max_row - 15)
         df_upd = (df[df.iloc[:, 7].notna()])
         df_upd = df_upd.rename(columns={0: "Nr", 7: 'Allergier', 8: 'Extra info'})
         df_upd = df_upd.set_index('Nr')
-        st.markdown("#### Extracted data:")
-        show_editable_df(df_upd, f"_raw", f"summary_allerg_raw", no_filter=True, allow_delete=True, column_order=('Nr', '1', '2', 'Allergier', 'Extra info'))
-        # with st.form("remove entries", clear_on_submit=False):
-        del_selection =st.multiselect("Välja att ta bort:", sorted(list(set([x.strip() for x in df_upd.loc[:, 'Allergier']]))))
-       # del_entries = st.form_submit_button("Ta bort")
-        if del_selection:
-            df_upd_finished = df_upd[~df_upd['Allergier'].astype(str).str.strip().isin(del_selection)]
-        # show_editable_df(df_upd_finished, f"_raw2", f"summary_allerg_result", no_filter=True, allow_delete=True, column_order=('Nr', '1', '2', 'Allergier', 'Extra info'))
+        guest_cont.empty()
+        with guest_cont:
+            st.session_state["guest_key"] = str(uuid.uuid4())
+            if st.session_state.result_dict["amount_guests"] == 0:
+                st.session_state.result_dict["amount_guests"] = df_upd.index.max()
+            guest_amount = st.number_input(
+                "Antal personer:", value=st.session_state.result_dict["amount_guests"], format="%i", step=1,  key=f"guest_amount_{st.session_state["guest_key"] }")
 
-            # if "allergies" not in df_upd_finished:
-            #     df_upd_finished.insert(0, "allergies", [""] * len(df_upd_finished.index), True)
+        with st.expander("Allergier:", expanded=True):
+
+            st.markdown("##### Extracted data:")
+            show_editable_df(df_upd, f"_raw", f"summary_allerg_raw", no_filter=True, allow_delete=True, column_order=('Nr', '1', '2', 'Allergier', 'Extra info'))
+            # with st.form("remove entries", clear_on_submit=False):
+            st.markdown("##### Sammanställning av allergier")
+            allergies_list = sorted(list(set([x.strip() for x in df_upd.loc[:, 'Allergier']])))
             
-            col_df1, col_df2, col_df3, col_df4 = st.columns([0.25, 0.25, 0.25, 0.25])
-            col_df1.markdown("##### Person med anmärkning")
-            col_df2.markdown("##### Allergier")
-            col_df3.markdown("##### Kostavvikelser")
-            col_df4.markdown("##### Extra info")
-            
-            if "extra_inp_key" not in st.session_state:
-                st.session_state["extra_inp_key"] = str(uuid.uuid4())
-            
-            if "allergies" not in st.session_state.result_dict:
-                st.session_state.result_dict.update({"allergies": {}})
+            del_selection = st.multiselect("Ta bort följande:", allergies_list, default=remove_default(allergies_list))
+        # del_entries = st.form_submit_button("Ta bort")
+            if del_selection:
+                df_upd_finished = df_upd[~df_upd['Allergier'].astype(str).str.strip().isin(del_selection)]
+            # show_editable_df(df_upd_finished, f"_raw2", f"summary_allerg_result", no_filter=True, allow_delete=True, column_order=('Nr', '1', '2', 'Allergier', 'Extra info'))
 
-            for pers_w_allerg in df_upd_finished.index:
-                if pers_w_allerg not in st.session_state.result_dict["allergies"]:
-                    st.session_state.result_dict["allergies"].update(
-                        {pers_w_allerg: {"allerg": "", "kost": "", "extra": ""}})
+                # if "allergies" not in df_upd_finished:
+                #     df_upd_finished.insert(0, "allergies", [""] * len(df_upd_finished.index), True)
+                
+                col_df1, col_df2, col_df3, col_df4 = st.columns([0.25, 0.25, 0.25, 0.25])
+                col_df1.markdown("##### Person med anmärkning")
+                col_df2.markdown("##### Allergier")
+                col_df3.markdown("##### Kostavvikelser")
+                col_df4.markdown("##### Extra info")
+                
+                if "extra_inp_key" not in st.session_state:
+                    st.session_state["extra_inp_key"] = str(uuid.uuid4())
+                
+                if "allergies" not in st.session_state.result_dict:
+                    st.session_state.result_dict.update({"allergies": {}})
 
-                if f"extra_info_{pers_w_allerg}" not in st.session_state:
-                    st.session_state[f"extra_info_{pers_w_allerg}"] = ""
-                col_df1, col_df2, col_df3, col_df4, col_df5 = st.columns([0.25, 0.25, 0.25, 0.2, 0.05])
-                with col_df1:
-                    # df_upd_finished = show_df_with_checkboxes(df_upd_finished, "column_name__", f"summary_allerg_result_2", no_filter=True, allow_delete=False, column_order=('choose', 'Allergier', 'Extra info'), hide_index=False)
-                    st.write(f"{pers_w_allerg} -- {df_upd_finished.loc[pers_w_allerg, 'Allergier']}")
-                with col_df2:
-                    allerg_selection = st.multiselect("Allergier:", allerg_select, label_visibility="collapsed", key=f"allerg_multiselect_{pers_w_allerg}")
-                    if allerg_selection:
-                        st.session_state.result_dict["allergies"][pers_w_allerg].update(
-                            {"allerg": allerg_selection})
-                with col_df3:
-                    kostavv_selection = st.multiselect("Kostavvikelser:", kostavv_select, label_visibility="collapsed", key=f"kostavv_multiselect_{pers_w_allerg}")
-                    if kostavv_selection:
-                        st.session_state.result_dict["allergies"][pers_w_allerg].update(
-                            {"kost": kostavv_selection})
-                with col_df4:
-                    extra_info_cont = st.empty()
-                    extra_info = extra_info_cont.text_input("Extra:", value=st.session_state.result_dict["allergies"][pers_w_allerg]["extra"], label_visibility="collapsed", key=f"extra_select_{pers_w_allerg}_{st.session_state['extra_inp_key']}")
-                    if st.session_state[f"extra_select_{pers_w_allerg}_{st.session_state['extra_inp_key']}"]  == "":
-                        st.session_state.result_dict["allergies"][pers_w_allerg].update({"extra": ""})
-                    else:
-                        st.session_state.result_dict["allergies"][pers_w_allerg].update({"extra": st.session_state[f"extra_select_{pers_w_allerg}_{st.session_state['extra_inp_key']}"] })
+                for pers_w_allerg in df_upd_finished.index:
+                    if pers_w_allerg not in st.session_state.result_dict["allergies"]:
+                        st.session_state.result_dict["allergies"].update(
+                            {pers_w_allerg: {"allerg": "", "kost": "", "extra": ""}})
 
-
-                with col_df5:
-                    copy_btn = st.button("Copy", key=f"copy_allerg_{pers_w_allerg}")
-                    if copy_btn:
-                        st.session_state.result_dict["allergies"][pers_w_allerg].update({"extra": df_upd_finished.loc[pers_w_allerg, 'Allergier']})
-                        extra_info_cont.empty()
-                        st.session_state["extra_inp_key"] = str(uuid.uuid4())
+                    if f"extra_info_{pers_w_allerg}" not in st.session_state:
+                        st.session_state[f"extra_info_{pers_w_allerg}"] = ""
+                    col_df1, col_df2, col_df3, col_df4, col_df5 = st.columns([0.25, 0.25, 0.25, 0.2, 0.05])
+                    with col_df1:
+                        # df_upd_finished = show_df_with_checkboxes(df_upd_finished, "column_name__", f"summary_allerg_result_2", no_filter=True, allow_delete=False, column_order=('choose', 'Allergier', 'Extra info'), hide_index=False)
+                        st.write(f"{pers_w_allerg} -- {df_upd_finished.loc[pers_w_allerg, 'Allergier']}")
+                    with col_df2:
+                        allerg_selection = st.multiselect("Allergier:", allerg_select, label_visibility="collapsed", key=f"allerg_multiselect_{pers_w_allerg}")
+                        if allerg_selection:
+                            st.session_state.result_dict["allergies"][pers_w_allerg].update(
+                                {"allerg": allerg_selection})
+                    with col_df3:
+                        kostavv_selection = st.multiselect("Kostavvikelser:", kostavv_select, label_visibility="collapsed", key=f"kostavv_multiselect_{pers_w_allerg}")
+                        if kostavv_selection:
+                            st.session_state.result_dict["allergies"][pers_w_allerg].update(
+                                {"kost": kostavv_selection})
+                    with col_df4:
+                        extra_info_cont = st.empty()
                         extra_info = extra_info_cont.text_input("Extra:", value=st.session_state.result_dict["allergies"][pers_w_allerg]["extra"], label_visibility="collapsed", key=f"extra_select_{pers_w_allerg}_{st.session_state['extra_inp_key']}")
-                        if st.session_state[f"extra_select_{pers_w_allerg}_{st.session_state['extra_inp_key']}"] == "":
+                        if st.session_state[f"extra_select_{pers_w_allerg}_{st.session_state['extra_inp_key']}"]  == "":
                             st.session_state.result_dict["allergies"][pers_w_allerg].update({"extra": ""})
                         else:
-                            st.session_state.result_dict["allergies"][pers_w_allerg].update({"extra": st.session_state[f"extra_select_{pers_w_allerg}_{st.session_state['extra_inp_key']}"]})
-
-            if st.button("Klar!"):    
-                pers_keys = list(st.session_state.result_dict["allergies"].keys())
-                for pers in pers_keys:
-                    if pers not in list(df_upd_finished.index):
-                        st.session_state.result_dict["allergies"].pop(pers)
-                st.success("Allt är sparad.")
+                            st.session_state.result_dict["allergies"][pers_w_allerg].update({"extra": st.session_state[f"extra_select_{pers_w_allerg}_{st.session_state['extra_inp_key']}"] })
 
 
-            # df_upd_finished = st.data_editor(
-            #     df_upd_finished,
-            #     column_config={
-            #         "allergies": st.column_config.SelectboxColumn(
-            #             "Allergier",
-            #             help="The category of the app",
-            #             width="medium",
-            #             options=allerg_select,
-            #             required=True,
-            #         )
-            #     },
-            #     column_order=('Nr', '1', '2', 'Allergier', "allergies", 'Extra info'),
-            #     hide_index=False,
-            # )
-            
-            # if df_upd_finished.loc[:, "choose"].max():   # shows true or false
-            #     chosen_idx = df_upd_finished.loc[:, "choose"].idxmax()
-            #     chosen_allergy = df_upd_finished.loc[chosen_idx, 'Allergier']
-            #     df_upd_finished.loc[chosen_idx, "choose"] = False
-            #     print(df_upd_finished)
-            #     return chosen_idx, chosen_allergy
-      
-    return "", ""
+                    with col_df5:
+                        copy_btn = st.button("📝", key=f"copy_allerg_{pers_w_allerg}")
+                        if copy_btn:
+                            st.session_state.result_dict["allergies"][pers_w_allerg].update({"extra": df_upd_finished.loc[pers_w_allerg, 'Allergier']})
+                            extra_info_cont.empty()
+                            st.session_state["extra_inp_key"] = str(uuid.uuid4())
+                            extra_info = extra_info_cont.text_input("Extra:", value=st.session_state.result_dict["allergies"][pers_w_allerg]["extra"], label_visibility="collapsed", key=f"extra_select_{pers_w_allerg}_{st.session_state['extra_inp_key']}")
+                            if st.session_state[f"extra_select_{pers_w_allerg}_{st.session_state['extra_inp_key']}"] == "":
+                                st.session_state.result_dict["allergies"][pers_w_allerg].update({"extra": ""})
+                            else:
+                                st.session_state.result_dict["allergies"][pers_w_allerg].update({"extra": st.session_state[f"extra_select_{pers_w_allerg}_{st.session_state['extra_inp_key']}"]})
+
+                if st.button("Klar!"):    
+                    pers_keys = list(st.session_state.result_dict["allergies"].keys())
+                    for pers in pers_keys:
+                        if pers not in list(df_upd_finished.index):
+                            st.session_state.result_dict["allergies"].pop(pers)
+                    st.success("Allt är sparad.")
+
+
+                # df_upd_finished = st.data_editor(
+                #     df_upd_finished,
+                #     column_config={
+                #         "allergies": st.column_config.SelectboxColumn(
+                #             "Allergier",
+                #             help="The category of the app",
+                #             width="medium",
+                #             options=allerg_select,
+                #             required=True,
+                #         )
+                #     },
+                #     column_order=('Nr', '1', '2', 'Allergier', "allergies", 'Extra info'),
+                #     hide_index=False,
+                # )
+                
+                # if df_upd_finished.loc[:, "choose"].max():   # shows true or false
+                #     chosen_idx = df_upd_finished.loc[:, "choose"].idxmax()
+                #     chosen_allergy = df_upd_finished.loc[chosen_idx, 'Allergier']
+                #     df_upd_finished.loc[chosen_idx, "choose"] = False
+                #     print(df_upd_finished)
+                #     return chosen_idx, chosen_allergy
+        
 
 
         #st.dataframe(df)

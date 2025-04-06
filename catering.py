@@ -108,11 +108,15 @@ with info_col2:
 # else:
 #     st.write("Old connection")
 
+if "guest_key" not in st.session_state:
+    st.session_state["guest_key"] = str(uuid.uuid4())
+
 with info_col3:
     with st.container(border=True, key="guest_input_container"):
-
-        guest_amount = st.number_input(
-            "Antal personer:", format="%i", step=1,  key="guest_amount")
+        guest_cont = st.empty()
+        with guest_cont:
+            guest_amount = st.number_input(
+                "Antal personer:", value=st.session_state.result_dict["amount_guests"], format="%i", step=1,  key=f"guest_amount_{st.session_state["guest_key"] }")
 
 with info_col4:
     with st.container(border=True, key="date_input_container"):
@@ -121,7 +125,7 @@ with info_col4:
     # Get input for date and amount of guests
 # st.write(st.session_state.guest_amount)
 st.session_state.result_dict.update(
-    {"amount_guests": st.session_state.guest_amount})
+    {"amount_guests": st.session_state[f'guest_amount_{st.session_state["guest_key"]}']})
 # st.write(event_date)
 
 st.session_state.result_dict.update(
@@ -161,11 +165,10 @@ if "sp_inp_key" not in st.session_state:
 if "special_food" not in st.session_state:
     st.session_state["special_food"] = {}
 
-with st.expander("Allergier:", expanded=True):
 
-    res_cont = st.empty()
+res_cont = st.empty()
 
-    chosen_idx, chosen_allergy = read_excel(st.session_state.allerg.iloc[:, 0], st.session_state.allerg[st.session_state.allerg.loc[:, "Kostavvikelser"].notna()].iloc[:, 1])
+read_excel(guest_cont, st.session_state.allerg.iloc[:, 0], st.session_state.allerg[st.session_state.allerg.loc[:, "Kostavvikelser"].notna()].iloc[:, 1])
 
 
     # allerg_form = st.form("allerg_names", clear_on_submit=True)
@@ -214,9 +217,11 @@ with st.expander("Allergier:", expanded=True):
     #                 st.session_state.result_dict["allergies"][pers_w_allerg].update(
     #                     {"kost":  kostavv_selection})
 
-if any(["expander_state_m", "expander_state_l"]) not in st.session_state:
-    st.session_state["expander_state_l"] = False
+if "expander_state_m" not in st.session_state:
     st.session_state["expander_state_m"] = False
+
+if "expander_state_l" not in st.session_state:
+    st.session_state["expander_state_l"] = False
 
 
 st.markdown('<div id="lunch-top" style="color:white;">Lunch top</div>', unsafe_allow_html=True)
@@ -519,7 +524,7 @@ if st.button("Write to sheet"):
                   "slot_header": "A3",
                   "start_col": "A",
                   "end_col": "B",
-                  "start_row": 4,
+                  "start_row": 5,
                   }
     base_data = [{
         "range": cell_names["header"],
@@ -549,18 +554,18 @@ if st.button("Write to sheet"):
         data_dict = res_dict["meals"]["lunch"]
         data_special, special_rows = prep_special(data_dict, "main")
 
-        base_data.extend([{"range": "A3", "values": [[f'Lunch\n\nAntal pers: {data_dict["amount_guests"]}{" " * 7}Avgångstid fr BriQ: {str(data_dict["leave_bq"])[:5]}       Serveringstid: {str(data_dict["serve_time"])[:5]}\n']]},
+        base_data.extend([{"range": "A4", "values": [[f'Lunch\n\nAntal pers: {data_dict["amount_guests"]}{" " * 7}Avgångstid fr BriQ: {str(data_dict["leave_bq"])[:5]}       Serveringstid: {str(data_dict["serve_time"])[:5]}\n']]},
                           {"range": f'{cell_names["start_col"]}{cell_names["start_row"] + row_count}', "values": [
                               [f"Varmrätt: {data_dict["amount_guests"] - data_dict["main"].get("amount_special", 0)} pers.", data_dict["main"]["food"]],
                               ["Sallader:", data_dict.get("salads", "---")],
                               [f"Special:"]]}, #\n{'\n'.join([i for i in data_dict['main']['special_food'].keys()]) if data_dict['main'].get('special_food') else '---'}", data_special],], },
 
-                          {"range": "A7:B", "values": data_special},
+                          {"range": "A8:B", "values": data_special},
 
                           ])
-        special_row_format.append(f"A6:B{6 + special_rows}")
-        daytime_headers.append("A3")
-        row_count += 5 + special_rows
+        special_row_format.append(f"A7:B{7 + special_rows}")
+        daytime_headers.append("A4")
+        row_count += 6 + special_rows
 
     if "middag" in res_dict["meals"]:
         data_dict = res_dict["meals"]["middag"]

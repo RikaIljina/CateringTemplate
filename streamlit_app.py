@@ -126,8 +126,9 @@ def run():
                     margin: auto;
                 }
 
-               /* div:has(> [class*=input_amount_special])  {
-                 margin: auto;
+                /* div[class*="stColumn"]:has(button) * {
+                display: flex;
+                align-items: stretch; 
                 } */
 
                 [class*=input_amount_special] * {
@@ -167,12 +168,14 @@ def run():
 
                 }
 
-                button[role="tab"]:focus {
+                button[role="tab"]:focus,
+                button[role="tab"]:active  {
                     background-color: #D8F6EF !important;
 
                 }
 
-                button[role="tab"]:focus p {
+                button[role="tab"]:focus p,
+                button[role="tab"]:active p {
                     color: #203579 !important;
 
                 }
