@@ -36,8 +36,15 @@ class CatSheet():
 class UpdSheet():
     def __init__(self):
         print("Connecting with gspread...")
-        gc = gspread.service_account(filename="service_account.json")
-        self.conn = gc.open("Catering offert mall")
+        self.gc = gspread.service_account(filename="service_account.json")
+        self.conn = self.gc.open("Catering offert mall")
+
+    def create(self):
+        new_sheet = self.gc.create("Catering_test")
+        new_sheet.share('wasirika@gmail.com', perm_type='user', role='writer')
+        return new_sheet.url
+
+
     def write(self, name, data, pos):
         st.write(pos)
         print("Writing with gspread...")
@@ -57,9 +64,13 @@ class UpdSheet():
     def merge_cells(self, range, daytime_headers):
         # self.conn.worksheet("Resultat").merge_cells(range, merge_type=("MergeType.MERGE_COLUMNS"))
         range.extend(daytime_headers)
+        print(" BBBUG", daytime_headers)
+        print(" #### BBUG", range)
         for el in range:
             print("merging: ", el)
             self.conn.worksheet("Resultat").merge_cells(f"A{el[1:]}:B{el[1:]}")
+
+        set_row_height(self.conn.worksheet("Resultat"), "1:2", 75)
    
 
        # print(self.conn.worksheet("Resultat").merge_cells(f"A11:B11"))
@@ -87,31 +98,43 @@ class UpdSheet():
             wrapStrategy="WRAP",
         )
 
-        fmt = CellFormat(
+        fmt_title = CellFormat(
 #        backgroundColor=Color(1, 0.9, 0.9),
-        textFormat=TextFormat(bold=True, foregroundColor=Color(0, 0, 0), fontFamily="Calibri", fontSize=14),
+        textFormat=TextFormat(bold=True, foregroundColor=Color(0, 0, 0), fontFamily="Calibri", fontSize=16),
         backgroundColor=Color(0.878, 0.878, 0.878),
         horizontalAlignment='CENTER',
+        verticalAlignment='MIDDLE',
+        wrapStrategy="WRAP",
+        )
+
+        fmt_subtitle = CellFormat(
+#        backgroundColor=Color(1, 0.9, 0.9),
+        textFormat=TextFormat(bold=True, foregroundColor=Color(0, 0, 0), fontFamily="Calibri", fontSize=12),
+        backgroundColor=Color(0.878, 0.878, 0.878),
+        horizontalAlignment='CENTER',
+        verticalAlignment='MIDDLE',
         wrapStrategy="WRAP",
         )
 
         fmt_dt = CellFormat(textFormat=TextFormat(bold=True, foregroundColor=Color(0, 0, 0), fontFamily="Calibri", fontSize=12),
-        backgroundColor=Color(0.706, 0.878, 0.675),
+        backgroundColor=Color(0.855, 0.914, 0.969),
         horizontalAlignment='CENTER',
         wrapStrategy="WRAP",
         )
 
         fmt_sp = CellFormat(textFormat=TextFormat(bold=True, foregroundColor=Color(0, 0, 0), fontFamily="Calibri", fontSize=11),
-        backgroundColor=Color(0.694, 0.878, 0.757),
+        backgroundColor=Color(0.851, 0.949, 0.816),
         horizontalAlignment='LEFT',
         wrapStrategy="WRAP",
         )
 
         format_range = [("A:A", fmt_bold), ("B:B", fmt_not_bold)]
         
-        for el in headers:
-            print("centering:", el)
-            format_range.append((el, fmt))
+        #for el in headers:
+            #print("centering:", el)
+        format_range.append((headers[0], fmt_title))
+        format_range.append((headers[1], fmt_subtitle))
+
         for dt_h in daytime_headers:
             format_range.append((dt_h, fmt_dt))
         for sp in special_rows:
@@ -119,7 +142,7 @@ class UpdSheet():
 
         # format_cell_range(self.conn.worksheet("Resultat"), range, fmt) # format_cell_ranges(worksheet, [('A1:J1', fmt), ('K1:K200', fmt2)]) !!!
         format_cell_ranges(self.conn.worksheet("Resultat"), format_range)
-        self.conn.worksheet("Resultat").rows_auto_resize(1, 30)
+        self.conn.worksheet("Resultat").rows_auto_resize(3, 30)
 
 
         # self.conn.worksheet("Resultat").merge_cells(range, merge_type='MERGE_COLUMNS')

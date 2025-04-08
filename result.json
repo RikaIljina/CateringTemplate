@@ -1,76 +1,137 @@
 {
-    "venue": "Mariestad",
-    "customer_name": "Töreboda kommun",
-    "amount_guests": 5,
-    "date": "2025-04-10",
+    "venue": "Sätrabruk Dagkonferens",
+    "customer_name": "Sätra X",
+    "amount_guests": 30,
+    "date": "2025-04-08",
     "meals": {
         "lunch": {
             "main": {
-                "amount_special": 7,
-                "food": "Mandelbakad torskrygg med brynt smör, blomkålspuré och citronstekt gurka",
+                "amount_special": 2,
+                "food": "Havets Wallenbergare med kräftsås, kokt potatis och dillglaserade grönsaker, skaldjurstopping",
                 "special_food": {
-                    "5 p. ": [],
-                    "1 p. -sojabönor ⛔️ || Fågel 🚫": [],
-                    "1 p. -sojabönor ⛔️": []
+                    "1 p. -laktos": [
+                        "laktosfri  smör"
+                    ],
+                    "1 p. -nötter, -skal-/kräftdjur, -vit choklad, +mandel": [
+                        "veg biff",
+                        "veg sås",
+                        "veg topping"
+                    ]
                 }
             },
-            "amount_guests": 5,
-            "leave_bq": "11:00:00",
-            "serve_time": "12:00:00",
+            "amount_guests": 30,
+            "leave_bq": "10:45:00",
+            "serve_time": "11:45:00",
+            "salads": "Grönsallad, fänkålsallad",
             "special": {
-                "0": "5 p. ",
-                "1": "1 p. -sojabönor ⛔️ || Fågel 🚫",
-                "2": "1 p. -sojabönor ⛔️"
+                "4": "1 p. -laktos",
+                "6": "1 p. -nötter, -skal-/kräftdjur, -vit choklad, +mandel"
+            }
+        },
+        "middag": {
+            "amount_guests": 30,
+            "leave_bq": "17:45:00",
+            "serve_time": "19:00:00",
+            "bread": true,
+            "main": {
+                "amount_special": 4,
+                "food": "Rödvinsbräserad högrev med grillad morotstartar, syrad rödlök, chilidressad spetskål samt rökt vitlökscrème och rostad potatis",
+                "special_food": {
+                    "4 p. Pescetarian 🌿": [
+                        "Saltbakad rödbeta",
+                        "gratenerad ost"
+                    ],
+                    "1 p. laktos ⛔": []
+                }
+            },
+            "special": {
+                "4": "1 p. laktos ⛔"
+            },
+            "dessert": {
+                "amount_special": 10,
+                "special_food": {
+                    "1 p. laktos ⛔": []
+                },
+                "food": "Crème brulée"
+            },
+            "salads": {
+                "food": "Grönsallad, Coleslaw",
+                "amount_special": 1,
+                "special_food": {
+                    "1 p. laktos ⛔": [
+                        "laktosfri  smör"
+                    ]
+                }
             }
         }
     },
     "allergies": {
-        "3": {
-            "allerg": "",
+        "1": {
+            "allerg": [
+                "laktos"
+            ],
             "kost": "",
             "extra": ""
         },
-        "7": {
-            "allerg": [
-                "kräftdjur ⛔️"
-            ],
-            "kost": [
-                "Vegetarianer 🌿"
-            ],
-            "extra": "Önskar vegetarisk kost och fisk"
-        },
-        "9": {
+        "2": {
             "allerg": "",
-            "kost": "",
+            "kost": [
+                "Pescetarian 🌿"
+            ],
             "extra": ""
         },
-        "10": {
-            "allerg": [
-                "mjölk och mjölkprodukter ⛔️"
-            ],
+        "6": {
+            "allerg": "",
             "kost": "",
-            "extra": "fg f fdfdg"
-        },
-        "13": {
-            "allerg": [
-                "sojabönor ⛔️"
-            ],
-            "kost": [
-                "Fågel 🚫"
-            ],
-            "extra": "jkjk"
+            "extra": "Havremjölk?"
         },
         "14": {
-            "allerg": [
-                "sojabönor ⛔️"
+            "allerg": "",
+            "kost": [
+                "Pescetarian 🌿"
             ],
-            "kost": "",
             "extra": ""
         },
-        "15": {
+        "17": {
+            "allerg": [
+                "nötter"
+            ],
+            "kost": "",
+            "extra": "-stenfrukt"
+        },
+        "18": {
+            "allerg": "",
+            "kost": [
+                "Fläsk 🔴"
+            ],
+            "extra": ""
+        },
+        "21": {
+            "allerg": "",
+            "kost": [
+                "Pescetarian 🌿"
+            ],
+            "extra": ""
+        },
+        "22": {
             "allerg": "",
             "kost": "",
-            "extra": "Vill ha havremjölk "
+            "extra": "-hasselnötter"
+        },
+        "26": {
+            "allerg": [
+                "skal-/kräftdjur",
+                "nötter"
+            ],
+            "kost": "",
+            "extra": "-vit choklad, +mandel"
+        },
+        "30": {
+            "allerg": "",
+            "kost": [
+                "Pescetarian 🌿"
+            ],
+            "extra": ""
         }
     }
 }

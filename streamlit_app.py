@@ -67,6 +67,11 @@ def run():
                     border-radius: 5px;
                 }
 
+                .stMultiSelect div[data-baseweb="select"] span[data-baseweb="tag"] {
+                background-color: #e8bcb4;
+                color: #1c1a1a;
+                }
+
                 .btn-link {
                     background-color: #91CE8F;
                     border-radius: 7px;

@@ -76,7 +76,7 @@ cont_border = False
 info_col1, info_col2, info_col3, info_col4 = st.columns([1, 1, 1, 1])
 with info_col1:
     with st.container(border=True, key="venue_input_container"):
-        venue = st.selectbox("Ort", ["Mariestad", "Sätra"])
+        venue = st.selectbox("Ort", ["Mariestad", "Sätrabruk Dagkonferens"])
         st.session_state.result_dict.update({"venue": venue})
 with info_col2:
     with st.container(border=True, key="customer_input_container"):
@@ -110,6 +110,14 @@ with info_col2:
 
 if "guest_key" not in st.session_state:
     st.session_state["guest_key"] = str(uuid.uuid4())
+if "sp_amount_key" not in st.session_state:
+    st.session_state["sp_amount_key"] = str(uuid.uuid4())
+if "warn_change" not in st.session_state:
+    st.session_state["warn_change"] = None
+if "warn_not_saved" not in st.session_state:
+    st.session_state["warn_not_saved"] = None
+
+
 
 with info_col3:
     with st.container(border=True, key="guest_input_container"):
@@ -136,6 +144,16 @@ st.session_state.result_dict.update(
 # lunch = df.read(ws_names["all"])
 # st.write(lunch.columns.to_list())
 
+
+if "allerg" not in st.session_state:
+    st.session_state.allerg = st.session_state.df.read(ws_names["allerg"], 2)
+
+
+res_cont = st.empty()
+
+read_excel(guest_cont, st.session_state.allerg.iloc[:, 0], st.session_state.allerg[st.session_state.allerg.loc[:, "Kostavvikelser"].notna()].iloc[:, 1])
+
+
 # Reference the list for förmiddag here
 if "morning" not in st.session_state:
     st.session_state.morning = st.session_state.df.read(ws_names["fe"], 1)
@@ -151,8 +169,7 @@ if "kvs25" not in st.session_state:
     st.session_state.kvs25 = st.session_state.df.read(ws_names["kvs25"], 4)
 if "kvh24" not in st.session_state:
     st.session_state.kvh24 = st.session_state.df.read(ws_names["kvh24"], 4)
-if "allerg" not in st.session_state:
-    st.session_state.allerg = st.session_state.df.read(ws_names["allerg"], 2)
+
 if "salads" not in st.session_state:
     st.session_state.salads = st.session_state.df.read(ws_names["salads"], 1)
 
@@ -164,11 +181,6 @@ if "sp_inp_key" not in st.session_state:
 
 if "special_food" not in st.session_state:
     st.session_state["special_food"] = {}
-
-
-res_cont = st.empty()
-
-read_excel(guest_cont, st.session_state.allerg.iloc[:, 0], st.session_state.allerg[st.session_state.allerg.loc[:, "Kostavvikelser"].notna()].iloc[:, 1])
 
 
     # allerg_form = st.form("allerg_names", clear_on_submit=True)
@@ -503,6 +515,9 @@ def prep_special(data_dict, meal_type):
     return data_special, special_rows
 
 
+if st.button("Create new sheet"):
+    st.link_button(label="New spreadsheet", url=st.session_state.upd_conn.create())
+
 if st.button("Write to sheet"):
    # st.dataframe(st.session_state.upd_conn.read())
     # st.session_state.upd_conn.write("Inmatning", [result, result, result], 1)
@@ -554,7 +569,7 @@ if st.button("Write to sheet"):
         data_dict = res_dict["meals"]["lunch"]
         data_special, special_rows = prep_special(data_dict, "main")
 
-        base_data.extend([{"range": "A4", "values": [[f'Lunch\n\nAntal pers: {data_dict["amount_guests"]}{" " * 7}Avgångstid fr BriQ: {str(data_dict["leave_bq"])[:5]}       Serveringstid: {str(data_dict["serve_time"])[:5]}\n']]},
+        base_data.extend([{"range": "A4", "values": [[f'Lunch\n\nAntal pers: {data_dict["amount_guests"]}{" " * 7}Avgångstid fr BriQ: {str(data_dict["leave_bq"])[:5]}       Serveringstid: {str(data_dict["serve_time"])[:5]}']]},
                           {"range": f'{cell_names["start_col"]}{cell_names["start_row"] + row_count}', "values": [
                               [f"Varmrätt: {data_dict["amount_guests"] - data_dict["main"].get("amount_special", 0)} pers.", data_dict["main"]["food"]],
                               ["Sallader:", data_dict.get("salads", "---")],
@@ -565,13 +580,13 @@ if st.button("Write to sheet"):
                           ])
         special_row_format.append(f"A7:B{7 + special_rows}")
         daytime_headers.append("A4")
-        row_count += 6 + special_rows
+        row_count += 7 + special_rows
 
     if "middag" in res_dict["meals"]:
         data_dict = res_dict["meals"]["middag"]
         current_row = 3 + row_count
         row_count = current_row
-        base_data.extend([{"range": f'{cell_names["start_col"]}{current_row}', "values": [[f'Middag\n\nAntal pers: {data_dict["amount_guests"]}{" " * 7}Avgångstid fr BriQ: {str(data_dict["leave_bq"])[:5]}       Serveringstid: {str(data_dict["serve_time"])[:5]}\n']]},])
+        base_data.extend([{"range": f'{cell_names["start_col"]}{current_row}', "values": [[f'Middag\n\nAntal pers: {data_dict["amount_guests"]}{" " * 7}Avgångstid fr BriQ: {str(data_dict["leave_bq"])[:5]}       Serveringstid: {str(data_dict["serve_time"])[:5]}']]},])
         middag_values = []
 
         if "starter" in data_dict:
@@ -634,10 +649,12 @@ if st.button("Write to sheet"):
         daytime_headers.append(f'{cell_names["start_col"]}{current_row}')
 
         row_count += 2
+        base_data.extend([{"range": f'{cell_names["start_col"]}{row_count + 1}', "values": [["Anmärkningar"]]}])
 
     st.session_state.upd_conn.write_range(
         "Resultat", base_data)
     st.session_state.upd_conn.merge_cells(header_ranges, daytime_headers)
+    print("###BUG??", (header_ranges, daytime_headers, special_row_format))
     st.session_state.upd_conn.center_text(header_ranges, daytime_headers, special_row_format)
 
    # st.dataframe(st.session_state.upd_conn.read())
