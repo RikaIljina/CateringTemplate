@@ -398,7 +398,10 @@ with st.expander("LUNCH", expanded=st.session_state["expander_state_l"]):
                 if save_btn:
                     col1.success("Sparad!")
                     st.session_state.result_dict["meals"]["lunch"]["main"]["food"] = lunch_mod
-                    st.session_state.result_dict["meals"]["lunch"]["extras"]["salads"] = salad_mod
+                    if "extras" not in st.session_state.result_dict["meals"]["lunch"]:
+                        st.session_state.result_dict["meals"]["lunch"].update({"extras": {"salads": salad_mod}})
+                    else:
+                        st.session_state.result_dict["meals"]["lunch"]["extras"]["salads"] = salad_mod
 
     st.markdown("<div class='btn-link'><a href='#lunch-top' target='_self' style='display: inline-block; width: 100%; text-decoration: none; text-align: center; color: black; font-weight: bold;'> ⏫ UP ⏫ </a></div>", unsafe_allow_html=True)
 

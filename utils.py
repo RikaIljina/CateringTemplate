@@ -14,6 +14,7 @@ from pandas.api.types import (
 )
 from datetime import datetime
 import xlsxwriter
+from xlsxwriter.utility import xl_cell_to_rowcol
 
 
 def filter_dataframe(df: pd.DataFrame, qkey) -> pd.DataFrame:
@@ -760,26 +761,49 @@ def read_excel(guest_cont, allerg_select, kostavv_select):
                 col_bt1.success("Allt är sparad.")
 
 
-def prep_special(data_dict, meal_type):
+def prep_special(data_dict, meal_type, current_row, add_format):
     data_special = []
+    merge_col = []
+    merge_data = []
     special_rows = 0
     new_dict = {}
 
     if data_dict[meal_type].get("special_food"):
         for k, v in data_dict[meal_type]['special_food'].items():
+            print(v)
             vv = ", ".join(v)
+            print(vv)
             if vv not in list(new_dict.keys()):
-                new_dict[vv] = k
+                new_dict[vv] = {"food": k, "lines": 1}
             else:
-                new_dict.update({vv: f"{new_dict[vv]}, {k}"})
+                new_dict.update({vv: {"food": f"{new_dict[vv]},\n{k}",
+                                      "lines": new_dict[vv]["lines"] + 1}})
         print(" #  # #  special ", new_dict)
         for v, k in new_dict.items(): # data_dict[meal_type]['special_food'].items():
-            data_special.append([k, v])
+            merge_data.append({
+                "range": f"A{current_row+special_rows}:B{current_row+special_rows}",
+                "values": k["food"],
+                "row_height": 15 * k["lines"],
+                "format": add_format("base_format", [1, 1, 2, 1])
+                      })
+            data_special.append([k, v])  # TODO: Format the keys to have linebreaks etc...
             special_rows += 1
-    return data_special, special_rows
+        print(data_special)
+        print(special_rows)
+
+    return data_special, special_rows, merge_data
 
 
-def prepare_excel_data():
+
+def prepare_excel_data(wb):
+    with open("excel_formats.json", "r", encoding="utf-8") as json_file:
+        formats = json.load(json_file)
+
+    def add_format(key, borders=None):
+        if borders:
+            formats[key].update({"top": borders[0], "bottom": borders[1], "left": borders[2], "right": borders[3],})
+        return wb.add_format(formats[key])
+
     if "result_dict_loaded" in st.session_state:
         res_dict = st.session_state["result_dict_loaded"]
     else:
@@ -794,20 +818,34 @@ def prepare_excel_data():
         pd.Series(res_dict["date"])).dt.isocalendar().week
     print(event_week)
     cell_names = {"header": "A1:C1",
-                "amount_and_date": "A2:C2",
-                "slot_header": "A3",
+                "subheader": "A2:C2",
                 "start_col": "A",
                 "end_col": "C",
-                "start_row": 5,
+                "start_row": 4,
                 }
-    base_data = [{
-        "range": cell_names["header"],
-        "values":
-        f"{res_dict["customer_name"]} {res_dict["venue"]}, Dag {res_dict["day"]} Grupp {res_dict["group"]}"
-    },
-        {"range": cell_names["amount_and_date"], "values": f"Antal pers: {res_dict["amount_guests"]}{" " * 20}Datum: {str(event_date)} - {event_weekday} - v{event_week[0]}"},
-    ]
-    row_count = 0
+    
+    merge_data = [{
+                    "range": cell_names["header"],
+                    "values": f"{res_dict["customer_name"]} {res_dict["venue"]}, Dag {res_dict["day"]} Grupp {res_dict["group"]}",
+                    "format": add_format("header_format"),
+                    "row_height": 50,
+                  },
+                  {"range": cell_names["subheader"],
+                   "values": f"Antal pers: {res_dict["amount_guests"]}{" " * 20}Datum: {str(event_date)} - {event_weekday} - v{event_week[0]}",
+                   "format": add_format("subheader_format"),
+                   "row_height": 30,
+                  },
+
+                  ]
+    # base_data = [{
+    #     "range": cell_names["header"],
+    #     "values":
+    #     f"{res_dict["customer_name"]} {res_dict["venue"]}, Dag {res_dict["day"]} Grupp {res_dict["group"]}"
+    # },
+    #     {"range": cell_names["subheader"], "values": f"Antal pers: {res_dict["amount_guests"]}{" " * 20}Datum: {str(event_date)} - {event_weekday} - v{event_week[0]}"},
+    # ]
+    base_data = []
+    row_count = cell_names["start_row"]
     special_rows = 0
     header_ranges = ['A1', 'A2']
     daytime_headers = []
@@ -822,20 +860,72 @@ def prepare_excel_data():
     #                       ])
     #     row_count += 4
     #     header_ranges.append("A3")
-    print(" DICT: ", res_dict)
+
     if "lunch" in res_dict["meals"]:
         data_dict = res_dict["meals"]["lunch"]
-        data_special, special_rows = prep_special(data_dict, "main")
+        
+        merge_data.extend([{"range": f'{cell_names["start_col"]}{row_count}:{cell_names["end_col"]}{row_count}',
+                           "values": 'Lunch',
+                           "format": add_format("daytime_format"),
+                           "row_height": 25,
+                           },
+                           {
+                               "range": f'{cell_names["start_col"]}{row_count + 1}:{cell_names["end_col"]}{row_count + 1}',
+                               "values": f"Antal pers: {data_dict["amount_guests"]}{" " * 25}Avgångstid fr BriQ: {str(data_dict["leave_bq"])[:5]}{" " * 25}Serveringstid: {str(data_dict["serve_time"])[:5]}",
+                               "format": add_format("daytime_subheader_format"),
+                               "row_height": 20,
+                           }
+                           ])
+        row_count += 2
 
-        base_data.extend([{"range": "A4", "values": [[f'Lunch\n\nAntal pers: {data_dict["amount_guests"]}{" " * 7}Avgångstid fr BriQ: {str(data_dict["leave_bq"])[:5]}       Serveringstid: {str(data_dict["serve_time"])[:5]}']]},
-                        {"range": f'{cell_names["start_col"]}{cell_names["start_row"] + row_count}', "values": [
-                            [f"Varmrätt: {data_dict["amount_guests"] - data_dict["main"].get("amount_special", 0)} pers.", data_dict["main"]["food"]],
-                            ["Sallader:", data_dict.get("salads", "---")],
-                            [f"Special:"]]}, #\n{'\n'.join([i for i in data_dict['main']['special_food'].keys()]) if data_dict['main'].get('special_food') else '---'}", data_special],], },
+        base_data.extend([
+            {
+            "range": f'{cell_names["start_col"]}{row_count}',
+            "values": "Varmrätt:",
+                        "format": add_format("base_format_bold", [1, 1, 2, 0]),
+            },
+            {
+            "range": f'B{row_count}',
+            "values": f"{data_dict["amount_guests"] - data_dict["main"].get("amount_special", 0)} pers.",
+                        "format": add_format("base_format", [1, 1, 0, 1]),
+            },
+            {
+            "range": f'C{row_count}',
+            "values": data_dict["main"]["food"],
+                        "format": add_format("base_format", [1, 1, 1, 2]),
+            },
+            ])
+        row_count += 1
 
-                        {"range": "A8:B", "values": data_special},
+        merge_data.extend([{
+            "range": f'{cell_names["start_col"]}{row_count}:B{row_count}',
+            "values": "Special f. varmrätt:",
+                        "format": add_format("base_format_bold", [1, 1, 2, 1]),
+                     "row_height": 15,
 
-                        ])
+            },
+            #  {"range": f"{cell_names["start_col"]}{row_count+1}:B{row_count+1+special_rows}'",
+            #   "values": data_special,
+            #   "format": add_format("base_format_bold", [1, 1, 2, 1]),
+            #   "row_height": 15,},
+             ])
+        row_count += 1
+        
+        data_special, special_rows, merge_data_special = prep_special(data_dict, "main", row_count, add_format)
+        merge_data.extend(merge_data_special)
+
+        # base_data.extend([
+        #     {
+        #     "range": f'{cell_names["start_col"]}{row_count}:{cell_names["end_col"]}{row_count + 1}',
+        #     "values": [[f"Varmrätt:", f"{data_dict["amount_guests"] - data_dict["main"].get("amount_special", 0)} pers.", data_dict["main"]["food"]],
+        #                     [f"Special:", "", ""]],
+        #                    "format": "base_format",
+
+        #     },
+        #     {"range": "A8:B", "values": data_special},
+
+        #                 ])
+
         special_row_format.append(f"A7:B{7 + special_rows}")
         daytime_headers.append("A4")
         row_count += 7 + special_rows
@@ -909,7 +999,7 @@ def prepare_excel_data():
         row_count += 2
         base_data.extend([{"range": f'{cell_names["start_col"]}{row_count + 1}', "values": [["Anmärkningar"]]}])
     
-    return base_data
+    return merge_data, base_data, row_count
 
     # st.session_state.upd_conn.write_range(
     #     "Resultat", base_data)
@@ -918,46 +1008,85 @@ def prepare_excel_data():
     # st.session_state.upd_conn.center_text(header_ranges, daytime_headers, special_row_format)
 
 
+def write_range(ws, item):
+    cell_range = item["range"]
+    data = item["values"]
+    format = item["format"]
+    print("### write range", cell_range)
+    if ':' in cell_range:
+        start_cell, end_cell = cell_range.split(':')
+        start_row, start_col = xl_cell_to_rowcol(start_cell)
+        end_row, end_col = xl_cell_to_rowcol(end_cell)
+
+        # Determine shape of the range
+        n_rows = end_row - start_row + 1
+        n_cols = end_col - start_col + 1
+
+        # Handle 1D row or column
+        if isinstance(data, list) and all(not isinstance(i, list) for i in data):
+            if n_rows == 1:
+                ws.write_row(start_row, start_col, data, cell_format=format)
+            elif n_cols == 1:
+                ws.write_column(start_row, start_col, data, cell_format=format)
+            else:
+                raise ValueError("1D data can only be written to a single row or single column range.")
+        # Handle 2D list
+        elif isinstance(data, list) and all(isinstance(i, list) for i in data):
+            if len(data) != n_rows or any(len(row) != n_cols for row in data):
+                raise ValueError("2D data does not match the size of the target range.")
+            for r_idx, row in enumerate(data):
+                ws.write_row(start_row + r_idx, start_col, row, cell_format=format)
+        else:
+            raise TypeError("Unsupported data type for range.")
+    else:
+        # Single cell
+        row, col = xl_cell_to_rowcol(cell_range)
+        ws.write(row, col, data, format)
+
+
 def write_excel():
-
-    data = prepare_excel_data()
-    with open("excel_formats.json", "r", encoding="utf-8") as json_file:
-        formats = json.load(json_file)
-
-    def add_format(key):
-        return workbook.add_format(formats[key])
-    
+   
     wb_name = str(datetime.now()).replace(" ", "")
     wb_name = wb_name.replace("-", "")
     wb_name = wb_name.replace(".", "")
     wb_name = wb_name.replace(":", "")
     # Create an new Excel file and add a worksheet.
     workbook = xlsxwriter.Workbook(f'{wb_name}.xlsx')
+    st.session_state["workbook"] = workbook
+
+    merge_data, base_data, row_count = prepare_excel_data(workbook)
+
     worksheet = workbook.add_worksheet(name="Resultat")
     # Increase the cell size of the merged cells to highlight the formatting.
-    worksheet.set_column("A:A", 20)
-    worksheet.set_column("B:B", 5)
-    worksheet.set_column("C:C", 60)
+    worksheet.set_column("A:A", 16)
+    worksheet.set_column("B:B", 10)
+    worksheet.set_column("C:C", 59)
 
-    worksheet.set_row(0, 50)
-    worksheet.set_row(1, 30)
+    # worksheet.set_row(0, 50)
+    # worksheet.set_row(1, 30)
 
-    base_format = workbook.add_format({"font_size": 14})
+    #base_format = workbook.add_format({"font_size": 14})
     # Create a format to use in the merged range.
-    help_x = {'A': 0, 'B': 1, 'C': 2}
+   # help_x = {'A': 0, 'B': 1, 'C': 2}
     # for x in range(0, 20):
     #     worksheet.write_row(0 + x, 'A', ["Test", "Test", "Test"], base_format)
     # col = help_x[data[0]["range"][0]]
     # row = int(data[0]["range"][1:])
-    value = data[0]["values"]
-    print(data[0]["range"])
+    value = merge_data[0]["values"]
     # worksheet.write_row(row, col, value, add_format("header_format"))
     # Merge 3 cells.
-    worksheet.merge_range(data[0]["range"], data=value, cell_format=add_format("header_format"))
-
+    for item in merge_data:                                     # TODO: if special food, access with ["food"] key as set in prep_special
+        row_nr = int(item["range"].split(":")[0][1:]) - 1
+        print("MERGING ROW ", row_nr)
+        worksheet.set_row(row_nr, item["row_height"])
+        worksheet.merge_range(item["range"], data=item["values"], cell_format=item["format"])
+    #worksheet.merge_range(merge_data[1]["range"], data=merge_data[1]["values"], cell_format=add_format(merge_data[1]["format"]))
+    
+    for item in base_data:
+        write_range(worksheet, item)
     # Merge 3 cells over two rows.
-    worksheet.merge_range("A2:C2", data[1]["values"],
-                          add_format("subheader_format"))
+    # worksheet.merge_range("A2:C2", data[1]["values"],
+    #                       add_format("subheader_format"))
 
     # worksheet.write(0, 0, "MY HEADER", add_format("header_format"))
 

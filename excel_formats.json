@@ -12,6 +12,57 @@
         "font_size": 14,
         "align": "center",
         "valign": "vcenter"
+    },
+    "base_format": {
+        "font_name": "Calibri",
+        "top": 1,
+        "bottom": 1,
+        "left": 2,
+        "right": 2,
+        "bold": 0,
+        "font_size": 12,
+        "align": "left",
+        "valign": "vcenter",
+        "text_wrap": true
+    },
+    "base_format_bold": {
+        "font_name": "Calibri",
+        "top": 1,
+        "bottom": 1,
+        "left": 2,
+        "right": 2,
+        "bold": 1,
+        "font_size": 12,
+        "align": "left",
+        "valign": "vcenter",
+        "text_wrap": true
+    },
+    "daytime_format": {
+        "bg_color": "#D9EAD3",
+        "top": 2,
+        "bottom": 0,
+        "left": 2,
+        "right": 2,
+        "border_color": "#000000",
+        "font_name": "Calibri",
+        "bold": 1,
+        "font_size": 14,
+        "align": "center",
+        "valign": "vcenter",
+        "text_wrap": true
+    },
+    "daytime_subheader_format": {
+        "bg_color": "#D9EAD3",
+        "top": 0,
+        "bottom": 0,
+        "left": 2,
+        "right": 2,
+        "border_color": "#000000",
+        "font_name": "Calibri",
+        "bold": 1,
+        "font_size": 12,
+        "align": "center",
+        "valign": "vcenter",
+        "text_wrap": true
     }
-
 }
