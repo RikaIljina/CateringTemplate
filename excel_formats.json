@@ -37,8 +37,34 @@
         "valign": "vcenter",
         "text_wrap": true
     },
+    "special_format_bold": {
+        "font_name": "Calibri",
+        "bg_color": "#d9f2d0",
+        "top": 1,
+        "bottom": 1,
+        "left": 2,
+        "right": 1,
+        "bold": 1,
+        "font_size": 12,
+        "align": "left",
+        "valign": "vcenter",
+        "text_wrap": true
+    },
+    "special_format": {
+        "font_name": "Calibri",
+        "bg_color": "#d9f2d0",
+        "top": 1,
+        "bottom": 1,
+        "left": 1,
+        "right": 2,
+        "bold": 0,
+        "font_size": 12,
+        "align": "left",
+        "valign": "vcenter",
+        "text_wrap": true
+    },
     "daytime_format": {
-        "bg_color": "#D9EAD3",
+        "bg_color": "#dae9f7",
         "top": 2,
         "bottom": 0,
         "left": 2,
@@ -52,7 +78,7 @@
         "text_wrap": true
     },
     "daytime_subheader_format": {
-        "bg_color": "#D9EAD3",
+        "bg_color": "#dae9f7",
         "top": 0,
         "bottom": 0,
         "left": 2,

@@ -154,19 +154,6 @@ def check_val():
     st.session_state["warn_change"] = "Don't forget to save!"
 
 
-
-# def process_choice(df, df_type, df_filter_name, no_filter=False):
-#     df_upd = show_df_with_checkboxes(
-#         df, f"choose_{df_type}", df_filter_name, no_filter)
-#     chosen_one = df_upd.loc[:, "choose"].idxmax()
-#    # st.write(chosen_one)
-#     if df_upd.loc[:, "choose"].max():   # shows true or false
-#         if df_upd.loc[:, "choose"].value_counts().get(True) > 1:
-#             st.write("unselect one!")
-#         st.write(df_upd.iloc[chosen_one, 1])
-#         st.session_state.result_dict["meals"]["middag"].update(
-#             {df_type: df_upd.iloc[chosen_one, 1]})
-
 def process_choice(daytime_checked, df, daytime, meal_type, col_name, df_filter_name, no_filter=False):
     print(df.columns)
     df_upd = show_df_with_checkboxes(
@@ -177,14 +164,19 @@ def process_choice(daytime_checked, df, daytime, meal_type, col_name, df_filter_
     if len(df_upd) and df_upd.loc[:, "choose"].max():   # shows true or false
         chosen_one = df_upd.loc[:, "choose"].idxmax()
         if df_upd.loc[:, "choose"].value_counts().get(True) > 1:
-            st.error("You selected more than one meal, please unselect one!")
+            st.error("You selected more than one meal in this list, please unselect one!")
         if no_filter:
             chosen_meal = df_upd.iloc[chosen_one][col_name]
         else:
             chosen_meal = df_upd[df_upd.loc[:, "idx_key"]
                                  == chosen_one].iloc[0][col_name]
         st.write(chosen_meal)
-        st.session_state["tab_dict"][df_filter_name] = True
+       # st.session_state["tab_dict"][df_filter_name] = True
+        st.session_state["tab_dict"][daytime][meal_type][df_filter_name] = True
+        if sum([v for k, v in st.session_state["tab_dict"][daytime][meal_type].items()]) > 1:
+            st.error("You selected meals in more than one list, please unselect one!")
+
+
         if daytime_checked:
             if meal_type not in st.session_state.result_dict["meals"][daytime]:
                 st.session_state.result_dict["meals"][daytime][meal_type] = {
@@ -193,7 +185,11 @@ def process_choice(daytime_checked, df, daytime, meal_type, col_name, df_filter_
                 st.session_state.result_dict["meals"][daytime][meal_type].update(
                     {"food": chosen_meal})
     else:
-        st.session_state["tab_dict"][df_filter_name] = False
+        # st.session_state["tab_dict"][df_filter_name] = False
+        st.session_state["tab_dict"][daytime][meal_type][df_filter_name] = False
+        if not any([v for k, v in st.session_state["tab_dict"][daytime][meal_type].items()]) and daytime_checked:
+            st.session_state.result_dict["meals"][daytime][meal_type]["food"] = "[Ingen maträtt vald]"
+            #st.warning("STUFF")
 
 
 def convert_time(time):
@@ -493,6 +489,8 @@ def input_special(daytime, meal_type, key_char):
             if save_special_select_btn:
                 st.session_state.result_dict["meals"][daytime][meal_type]["special_food"][e].append(
                     " ".join([hur, vad, extra]).strip())
+                st.session_state.result_dict["meals"][daytime][meal_type]["special_food"][e] = sorted(list(
+                        filter(None, set(st.session_state.result_dict["meals"][daytime][meal_type]["special_food"][e]))))
                 # st.dataframe(pd.DataFrame(st.session_state["special_food"], index=range(len(st.session_state["special_food"]))).T)
                 special_to_copy = st.session_state.get(
                     f"same_as_select_{key_char}_{e}", False)
@@ -760,42 +758,72 @@ def read_excel(guest_cont, allerg_select, kostavv_select):
                         st.session_state.result_dict["allergies"].pop(pers)
                 col_bt1.success("Allt är sparad.")
 
+def format_special_string(text, first=False):
+    if first:
+        max_line = 35
+    else:
+        max_line = 26
+    line = ""
+    rest = []
+
+    if len(text) > max_line:
+        text_list = text.split(" ")
+        rest = text_list[:]
+        for e, word in enumerate(text_list):
+            if len(line) + len(word.strip()) + 1 < max_line:
+                line = f"{line + " " if line else ""}{word.strip()}"
+                rest.pop(0)
+            else:
+                line += "\n"
+                if not first:
+                    line = " "*8 + line
+                print(line)
+                break
+        return line + format_special_string(" ".join(rest))
+    else:
+        if not first:
+            text = " "*8 + text
+        return text
+    
 
 def prep_special(data_dict, meal_type, current_row, add_format):
     data_special = []
-    merge_col = []
+    food_data = []
     merge_data = []
     special_rows = 0
     new_dict = {}
+    extra_lines = 0
 
     if data_dict[meal_type].get("special_food"):
         for k, v in data_dict[meal_type]['special_food'].items():
-            print(v)
             vv = ", ".join(v)
-            print(vv)
+            k_formatted = format_special_string(k, first=True)
+            extra_lines = k_formatted.count('\n') + 1
             if vv not in list(new_dict.keys()):
-                new_dict[vv] = {"food": k, "lines": 1}
+                new_dict[vv] = {"people": k_formatted, "lines": extra_lines}
             else:
-                new_dict.update({vv: {"food": f"{new_dict[vv]},\n{k}",
-                                      "lines": new_dict[vv]["lines"] + 1}})
-        print(" #  # #  special ", new_dict)
+                new_dict.update({vv: {"people": f"{new_dict[vv]["people"]},\n{k_formatted}",
+                                      "lines": new_dict[vv]["lines"] + extra_lines}})
         for v, k in new_dict.items(): # data_dict[meal_type]['special_food'].items():
             merge_data.append({
                 "range": f"A{current_row+special_rows}:B{current_row+special_rows}",
-                "values": k["food"],
+                "values": k["people"],
                 "row_height": 15 * k["lines"],
-                "format": add_format("base_format", [1, 1, 2, 1])
+                "format": add_format("special_format", [1, 1, 2, 1])
                       })
-            data_special.append([k, v])  # TODO: Format the keys to have linebreaks etc...
+            food_data.append({
+                "range": f"C{current_row+special_rows}",
+                "values": v,
+                "format": add_format("special_format", [1, 1, 1, 2])
+                      })
+            #data_special.append([k, v])
             special_rows += 1
-        print(data_special)
-        print(special_rows)
 
-    return data_special, special_rows, merge_data
-
+    return special_rows, merge_data, food_data
 
 
 def prepare_excel_data(wb):
+
     with open("excel_formats.json", "r", encoding="utf-8") as json_file:
         formats = json.load(json_file)
 
@@ -851,31 +879,21 @@ def prepare_excel_data(wb):
     daytime_headers = []
     special_row_format = []
 
-    # if "förmiddag" in res_dict["meals"]:
-    #     data_dict = res_dict["meals"]["förmiddag"]
-    #     base_data.extend([{"range": "A3", "values": [[f'Förmiddag\n\nAntal pers: {data_dict["amount_guests"]}       Avgångstid fr BriQ: {str(data_dict["leave_bq"])[:5]}       Serveringstid: {str(data_dict["serve_time"])[:5]}\n']]},
-    #                       {"range": f'{cell_names["start_col"]}{cell_names["start_row"]}', "values": [
-    #                           [f"Fika: {data_dict["amount_guests"] - data_dict.get("amount_special", 0)} pers.", data_dict["food"]],
-    #                           [f"Special:\n{'\n'.join([i for i in data_dict['special'].values()]) if data_dict.get('special') else '---'}"]]},
-    #                       ])
-    #     row_count += 4
-    #     header_ranges.append("A3")
-
     if "lunch" in res_dict["meals"]:
         data_dict = res_dict["meals"]["lunch"]
         
         merge_data.extend([{"range": f'{cell_names["start_col"]}{row_count}:{cell_names["end_col"]}{row_count}',
-                           "values": 'Lunch',
-                           "format": add_format("daytime_format"),
-                           "row_height": 25,
-                           },
-                           {
-                               "range": f'{cell_names["start_col"]}{row_count + 1}:{cell_names["end_col"]}{row_count + 1}',
-                               "values": f"Antal pers: {data_dict["amount_guests"]}{" " * 25}Avgångstid fr BriQ: {str(data_dict["leave_bq"])[:5]}{" " * 25}Serveringstid: {str(data_dict["serve_time"])[:5]}",
-                               "format": add_format("daytime_subheader_format"),
-                               "row_height": 20,
-                           }
-                           ])
+                "values": 'Lunch',
+                "format": add_format("daytime_format"),
+                "row_height": 25,
+            },
+            {
+                "range": f'{cell_names["start_col"]}{row_count + 1}:{cell_names["end_col"]}{row_count + 1}',
+                "values": f"Antal pers: {data_dict["amount_guests"]}{" " * 25}Avgångstid fr BriQ: {str(data_dict["leave_bq"])[:5]}{" " * 25}Serveringstid: {str(data_dict["serve_time"])[:5]}",
+                "format": add_format("daytime_subheader_format"),
+                "row_height": 20,
+            }
+            ])
         row_count += 2
 
         base_data.extend([
@@ -898,46 +916,166 @@ def prepare_excel_data(wb):
         row_count += 1
 
         merge_data.extend([{
-            "range": f'{cell_names["start_col"]}{row_count}:B{row_count}',
+            "range": f'{cell_names["start_col"]}{row_count}:C{row_count}',
             "values": "Special f. varmrätt:",
-                        "format": add_format("base_format_bold", [1, 1, 2, 1]),
+                        "format": add_format("special_format_bold", [1, 1, 2, 2]),
                      "row_height": 15,
 
             },
-            #  {"range": f"{cell_names["start_col"]}{row_count+1}:B{row_count+1+special_rows}'",
-            #   "values": data_special,
-            #   "format": add_format("base_format_bold", [1, 1, 2, 1]),
-            #   "row_height": 15,},
              ])
         row_count += 1
-        
-        data_special, special_rows, merge_data_special = prep_special(data_dict, "main", row_count, add_format)
+
+        special_rows, merge_data_special, food_data  = prep_special(data_dict, "main", row_count, add_format)
         merge_data.extend(merge_data_special)
+        base_data.extend(food_data)
+        row_count += special_rows
+        print(row_count)
 
-        # base_data.extend([
-        #     {
-        #     "range": f'{cell_names["start_col"]}{row_count}:{cell_names["end_col"]}{row_count + 1}',
-        #     "values": [[f"Varmrätt:", f"{data_dict["amount_guests"] - data_dict["main"].get("amount_special", 0)} pers.", data_dict["main"]["food"]],
-        #                     [f"Special:", "", ""]],
-        #                    "format": "base_format",
+        if "extras" in res_dict["meals"]["lunch"]:
+            data_dict = res_dict["meals"]["lunch"]["extras"]
+            extra_special = False
+            
+            if "salads" in data_dict and data_dict["salads"] != "---":
+                merge_data.append({
+                "range": f'{cell_names["start_col"]}{row_count}:B{row_count}',
+                "values": "Sallader:",
+                "row_height": 15,
+                "format": add_format("base_format_bold", [1, 1, 2, 1]),
+                })
 
-        #     },
-        #     {"range": "A8:B", "values": data_special},
+                base_data.extend([
+                {
+                "range": f'C{row_count}',
+                "values": data_dict["salads"],
+                "format": add_format("base_format", [1, 1, 1, 2]),
+                },
+                ])
+                row_count += 1
+                print(row_count)
+                extra_special = True
 
-        #                 ])
 
-        special_row_format.append(f"A7:B{7 + special_rows}")
-        daytime_headers.append("A4")
-        row_count += 7 + special_rows
+            if data_dict["bread"]:
+                merge_data.append({
+                "range": f'{cell_names["start_col"]}{row_count}:B{row_count}',
+                "values": "Bröd och smör:",
+                "row_height": 15,
+                "format": add_format("base_format_bold", [1, 1, 2, 1]),
+                })
+
+                base_data.extend([
+                {
+                "range": f'C{row_count}',
+                "values": "Ja",
+                            "format": add_format("base_format", [1, 1, 1, 2]),
+                },
+                ])
+                row_count += 1
+                print(row_count)
+                extra_special = True
+
+            if data_dict["cake"]:
+                merge_data.append({
+                "range": f'{cell_names["start_col"]}{row_count}:B{row_count}',
+                "values": "Lunchkaka:",
+                "row_height": 15,
+                "format": add_format("base_format_bold", [1, 1, 2, 1]),
+                })
+
+                base_data.extend([
+                {
+                "range": f'C{row_count}',
+                "values": "Ja",
+                            "format": add_format("base_format", [1, 1, 1, 2]),
+                },
+                ])
+                row_count += 1
+                print(row_count)
+                extra_special = True
+
+            merge_data.extend([
+                {
+                "range": f'{cell_names["start_col"]}{row_count}:C{row_count}',
+                "values": "Special:",
+                            "format": add_format("special_format_bold", [1, 1, 2, 2]),
+                        "row_height": 15,
+                },
+                ])
+            row_count += 1
+
+            if extra_special:
+                special_rows, merge_data_special, food_data  = prep_special(res_dict["meals"]["lunch"], "extras", row_count, add_format)
+                merge_data.extend(merge_data_special)
+                base_data.extend(food_data)
+                row_count += special_rows + 1
+
+        # special_row_format.append(f"A7:B{7 + special_rows}")
+        # daytime_headers.append("A4")
 
     if "middag" in res_dict["meals"]:
         data_dict = res_dict["meals"]["middag"]
-        current_row = 3 + row_count
-        row_count = current_row
-        base_data.extend([{"range": f'{cell_names["start_col"]}{current_row}', "values": [[f'Middag\n\nAntal pers: {data_dict["amount_guests"]}{" " * 7}Avgångstid fr BriQ: {str(data_dict["leave_bq"])[:5]}       Serveringstid: {str(data_dict["serve_time"])[:5]}']]},])
-        middag_values = []
+
+        merge_data.extend([{"range": f'{cell_names["start_col"]}{row_count}:{cell_names["end_col"]}{row_count}',
+                "values": 'Middag',
+                "format": add_format("daytime_format"),
+                "row_height": 25,
+            },
+            {
+                "range": f'{cell_names["start_col"]}{row_count + 1}:{cell_names["end_col"]}{row_count + 1}',
+                "values": f"Antal pers: {data_dict["amount_guests"]}{" " * 25}Avgångstid fr BriQ: {str(data_dict["leave_bq"])[:5]}{" " * 25}Serveringstid: {str(data_dict["serve_time"])[:5]}",
+                "format": add_format("daytime_subheader_format"),
+                "row_height": 20,
+            }
+            ])
+        row_count += 2
+
+
+
+        # current_row = 3 + row_count
+        # row_count = current_row
+        # base_data.extend([{"range": f'{cell_names["start_col"]}{current_row}', "values": [[f'Middag\n\nAntal pers: {data_dict["amount_guests"]}{" " * 7}Avgångstid fr BriQ: {str(data_dict["leave_bq"])[:5]}       Serveringstid: {str(data_dict["serve_time"])[:5]}']]},])
+        # middag_values = []
 
         if "starter" in data_dict:
+
+                
+            base_data.extend([
+                {
+                "range": f'{cell_names["start_col"]}{row_count}',
+                "values": "Varmrätt:",
+                            "format": add_format("base_format_bold", [1, 1, 2, 0]),
+                },
+                {
+                "range": f'B{row_count}',
+                "values": f"{data_dict["amount_guests"] - data_dict["main"].get("amount_special", 0)} pers.",
+                            "format": add_format("base_format", [1, 1, 0, 1]),
+                },
+                {
+                "range": f'C{row_count}',
+                "values": data_dict["main"]["food"],
+                            "format": add_format("base_format", [1, 1, 1, 2]),
+                },
+                ])
+            row_count += 1
+
+            merge_data.extend([{
+                "range": f'{cell_names["start_col"]}{row_count}:C{row_count}',
+                "values": "Special f. varmrätt:",
+                            "format": add_format("special_format_bold", [1, 1, 2, 2]),
+                        "row_height": 15,
+
+                },
+                ])
+            row_count += 1
+
+            special_rows, merge_data_special, food_data  = prep_special(data_dict, "main", row_count, add_format)
+            merge_data.extend(merge_data_special)
+            base_data.extend(food_data)
+            row_count += special_rows
+            print(row_count)
+
+
+            
             data_special, special_rows = prep_special(data_dict, "starter")
             starter_data = [[f"Förrätt: {data_dict["amount_guests"] - data_dict['starter'].get("amount_special", 0)} pers.", data_dict["starter"]["food"]],
                             [f"Special:"],
@@ -1092,7 +1230,7 @@ def write_excel():
 
     workbook.close()
 
-    fpath = f'"D:\My Projects\Coding\Catering\{wb_name}.xlsx"'
+    fpath = f'"D:\\My Projects\\Coding\\Catering\\{wb_name}.xlsx"'
     os.system(fpath)
     
     # df_upd_finished = st.data_editor(

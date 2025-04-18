@@ -28,7 +28,7 @@ from datetime import time
 from streamlit_gsheets import GSheetsConnection
 from db_con import CatSheet, UpdSheet
 from utils import filter_dataframe, show_df_with_checkboxes, process_choice, input_main_info, input_special, read_excel, write_excel  # upd_results
-
+from collections import defaultdict
 
 st.set_page_config(page_title="Hello", page_icon=":material/waving_hand:",
                    layout="wide", initial_sidebar_state="auto", menu_items=None)
@@ -272,9 +272,25 @@ if "expander_state_m" not in st.session_state:
 if "expander_state_l" not in st.session_state:
     st.session_state["expander_state_l"] = False
 
+def nested_dict():
+    return defaultdict(nested_dict)
+
+if "tab_dict" not in st.session_state:
+    st.session_state["tab_dict"] = nested_dict()
+
 
 st.markdown('<div id="lunch-top" style="color:white;">Lunch top</div>',
             unsafe_allow_html=True)
+
+def get_active_tabs(tab_names, bools=True):
+     if bools:
+        return [v for k, v in st.session_state["tab_dict"].items() if k in tab_names]
+     else:
+        return [k for k, v in st.session_state["tab_dict"].items() if k in tab_names]
+         
+
+def get_tab_string(tab_names):
+    return ', '.join([tab_names[i] for i in get_active_tabs(tab_names, bools=False) if st.session_state["tab_dict"][i]])
 
 # x = st_javascript("(function() {window.parent.document.getElementById('top-of-expander-lunch').scrollIntoView({behavior: 'smooth'})})()")
 # print(x)
@@ -295,11 +311,14 @@ with st.expander("LUNCH", expanded=st.session_state["expander_state_l"]):
     col0, col1, col2, col3 = st.columns([0.1, 0.33, 0.33, 0.33])
     tab_l1, tab_l2, tab_l3, tab_l4 = st.tabs(
         ["Lunch Sommar 2025", "Lunch Höst 2024", "Visa stora listan", "Sallad & Bröd/Smör & Kaka"])
-    tab_names = {"lunch25_table": "Lunch Sommar 2025",
+    tab_names_l = {"lunch25_table": "Lunch Sommar 2025",
                  "lunch24_table": "Lunch Höst 2024", "alldishes_table": "Stor lista"}
-    if "tab_dict" not in st.session_state:
-        st.session_state["tab_dict"] = {
-            "lunch25_table": False, "lunch24_table": False, "alldishes_table": False}
+    # print(st.session_state["tab_dict"].keys())
+    
+    # if "tab_dict" not in st.session_state:
+    #     st.session_state["tab_dict"] = {
+    #         "lunch25_table": False, "lunch24_table": False, "alldishes_table": False}
+    # print(st.session_state["tab_dict"].keys())
 
     with tab_l1:
         # if col1.checkbox("Lunch Sommar 2025", key="lunch_chk1"):
@@ -315,6 +334,12 @@ with st.expander("LUNCH", expanded=st.session_state["expander_state_l"]):
         process_choice(yes_lunch, st.session_state.all_dishes, "lunch",
                        "main", "Rätt", "alldishes_table", no_filter=False)
 
+    def remove_salads():
+        if not yes_lunch_salads:
+            if yes_lunch and "salads" in st.session_state.result_dict["meals"]["lunch"]["extras"]:              # TODO: Salad disappeas if only updated not checked
+                st.session_state.result_dict["meals"]["lunch"]["extras"].pop(
+                        "salads")
+
     with tab_l4:
         col1, col2, col3 = st.columns([0.4, 0.3, 0.3])
 
@@ -323,7 +348,7 @@ with st.expander("LUNCH", expanded=st.session_state["expander_state_l"]):
                                                                   "extras": {}})
 
         with col1:
-            yes_lunch_salads = st.checkbox("Servera sallad", key="lunch_salad")
+            yes_lunch_salads = st.checkbox("Servera sallad", key="lunch_salad", on_change=remove_salads)
             if yes_lunch_salads:
 
                 salad_choices = st.multiselect(
@@ -336,10 +361,10 @@ with st.expander("LUNCH", expanded=st.session_state["expander_state_l"]):
                     else:
                         st.session_state.result_dict["meals"]["lunch"]["extras"]["salads"] = "---"
 
-            else:
-                if yes_lunch and "salads" in st.session_state.result_dict["meals"]["lunch"]["extras"]:
-                    st.session_state.result_dict["meals"]["lunch"]["extras"].pop(
-                        "salads")
+            # else:
+            #     if yes_lunch and "salads" in st.session_state.result_dict["meals"]["lunch"]["extras"]:              # TODO: Salad disappeas if only updated not checked
+            #         st.session_state.result_dict["meals"]["lunch"]["extras"].pop(
+            #             "salads")
 
         with col2:
             bread_choice = st.checkbox(
@@ -376,11 +401,12 @@ with st.expander("LUNCH", expanded=st.session_state["expander_state_l"]):
     if yes_lunch:
         # print(st.session_state.get("current_tab"))
         # if st.session_state.get("current_tab") != "lunch_salads":
-        if not any(st.session_state["tab_dict"].values()):
-            st.session_state.result_dict["meals"]["lunch"]["main"]["food"] = "[Ingen maträtt vald]"
-        elif sum(st.session_state["tab_dict"].values()) > 1:
-            st.error(
-                f"""You selected meals in more than one tab: **{', '.join([tab_names[i] for i in st.session_state["tab_dict"].keys() if st.session_state["tab_dict"][i]])}**""")
+        # active_tabs = get_active_tabs(tab_names_l)
+        # if not any(active_tabs):
+        #     st.session_state.result_dict["meals"]["lunch"]["main"]["food"] = "[Ingen maträtt vald]"
+        # elif sum(active_tabs) > 1:
+        #     st.error(
+        #         f"""You selected meals in more than one tab: **{get_tab_string(tab_names_l)}**""")
 
         with st.container(key="lunch_spec_cont"):
             input_special("lunch", "main", "l")
@@ -406,12 +432,6 @@ with st.expander("LUNCH", expanded=st.session_state["expander_state_l"]):
     st.markdown("<div class='btn-link'><a href='#lunch-top' target='_self' style='display: inline-block; width: 100%; text-decoration: none; text-align: center; color: black; font-weight: bold;'> ⏫ UP ⏫ </a></div>", unsafe_allow_html=True)
 
 
-##################
-# TODO : connect save_btn!!!
-##################
-
-# TODO: Add process_choice to middag!!!
-
 st.markdown('<div id="middag-top" style="color:white;">Middag top</div>',
             unsafe_allow_html=True)
 
@@ -422,6 +442,7 @@ with st.expander("MIDDAG", expanded=st.session_state["expander_state_m"]):
         st.success("Middag kommer att serveras.")
         if "middag" not in st.session_state.result_dict["meals"]:
             st.session_state.result_dict["meals"].update({"middag": {}})
+
     else:
         st.error("Middag kommer INTE att serveras.")
         st.session_state.result_dict["meals"].pop("middag", None)
@@ -446,6 +467,7 @@ with st.expander("MIDDAG", expanded=st.session_state["expander_state_m"]):
                 process_choice(yes_middag, st.session_state.kvh24.iloc[:]["Förrätt"].to_frame(
                 ), "middag", "starter", "Förrätt", "kvh24_f_f", no_filter=True)
 
+
             if yes_middag:
                 input_special("middag", "starter", "ms")
 
@@ -460,6 +482,17 @@ with st.expander("MIDDAG", expanded=st.session_state["expander_state_m"]):
                 st.session_state.result_dict["meals"]["middag"]["main"] = {}
 
             col0, col1, col2, col3 = st.columns([0.1, 0.33, 0.33, 0.33])
+
+            tab_names_mm = {"kvs25_v_f": "Kväll Sommar 2025",
+                 "kvh24_v_f": "Kväll Höst 2024"}
+            
+            # active_tabs = get_active_tabs(tab_names_mm)
+            # if not any(active_tabs):
+            #     st.session_state.result_dict["meals"]["middag"]["main"]["food"] = "[Ingen varmrätt vald]"
+            # elif sum(active_tabs) > 1:
+            #     st.error(
+            #     f"""You selected meals in more than one tab: **{get_tab_string(tab_names_mm)}**""")
+
 
             if col1.checkbox("Kväll Sommar 2025", key="kvs25_v"):
                 process_choice(yes_middag, st.session_state.kvs25.iloc[:]["Varmrätt"].to_frame(
@@ -481,6 +514,17 @@ with st.expander("MIDDAG", expanded=st.session_state["expander_state_m"]):
             if yes_middag and "dessert" not in st.session_state.result_dict["meals"]["middag"]:
                 st.session_state.result_dict["meals"]["middag"]["dessert"] = {}
             col0, col1, col2 = st.columns([0.1, 0.45, 0.45])
+           
+            tab_names_md = {"kvs25_d_f": "Kväll Sommar 2025",
+                 "kvh24_d_f": "Kväll Höst 2024"}
+            
+            # active_tabs = get_active_tabs(tab_names_md)
+            # if not any(active_tabs):
+            #     st.session_state.result_dict["meals"]["middag"]["dessert"]["food"] = "[Ingen dessert vald]"
+            # elif sum(active_tabs) > 1:
+            #     st.error(
+            #     f"""You selected meals in more than one tab: **{get_tab_string(tab_names_md)}**""")
+
 
             if col1.checkbox("Kväll Sommar 2025", key="kvs25_d"):
                 process_choice(yes_middag, st.session_state.kvs25.iloc[:]["Dessert"].to_frame(
@@ -501,6 +545,16 @@ with st.expander("MIDDAG", expanded=st.session_state["expander_state_m"]):
             if yes_middag and "dessert" in st.session_state.result_dict["meals"]["middag"]:
                 st.session_state.result_dict["meals"]["middag"].pop(
                     "dessert")
+        if yes_middag:
+            tab_names_ms = {"kvs25_f_f": "Kväll Sommar 2025",
+                 "kvh24_f_f": "Kväll Höst 2024"}
+            # active_tabs = get_active_tabs(tab_names_ms)
+            # if not any(active_tabs):
+            #     st.session_state.result_dict["meals"]["middag"]["starter"]["food"] = "[Ingen förrätt vald]"
+            # elif sum(active_tabs) > 1:
+            #     st.error(
+            #     f"""You selected meals in more than one tab: **{get_tab_string(tab_names_ms)}**""")
+
 
     with tab_m4:
         col_s1, col_s2 = st.columns(2)
@@ -545,6 +599,7 @@ with st.expander("MIDDAG", expanded=st.session_state["expander_state_m"]):
         elif yes_middag:
             st.session_state.result_dict["meals"]["middag"].pop("extras")
 
+        
     # st.link_button("[Middag top]", url='#middag-top', )
     st.markdown("<div class='btn-link'><a href='#middag-top' target='_self' style='display: inline-block; width: 100%; text-decoration: none; text-align: center; color: black; font-weight: bold;'> ⏫ UP ⏫ </a></div>", unsafe_allow_html=True)
 
