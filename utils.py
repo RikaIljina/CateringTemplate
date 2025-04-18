@@ -1,5 +1,6 @@
 import os
 import json
+from pathlib import Path
 import re
 import uuid
 import streamlit as st
@@ -220,7 +221,7 @@ def input_main_info(daytime_checked, daytime, key_char):
 KOST_STRINGS = {"Pescetarian": "Pesc", "Vegetarianer": "Veg", "Vegan": "Vegan"}
 
 
-def format_allergy_string(allerg):
+def format_allergy_string(allerg, return_str=False):
     # Cut off icon, add minus and abbreviate Veg/Pesc
     if allerg["kost"]:
         s_full, s_mid, s_end = [], [], []
@@ -241,7 +242,16 @@ def format_allergy_string(allerg):
         # print(st.session_state.result_dict["allergies"]["kost_formatted"])
     else:
         s_full = ""
-    return {"Allergier": ", ".join(sorted(list(map(lambda x: f"-{x}", allerg["allerg"])))), "Kostavvikelser": ", ".join(s_full), "Extra": allerg["extra"]}
+    if return_str:
+        res = ""
+        for st in [", ".join(sorted(list(map(lambda x: f"-{x}", allerg["allerg"])))), ", ".join(s_full), allerg["extra"]]:
+            if st and not res:
+                res = st
+            elif st:
+                res += ", " + st
+        return  res # ", ".join([", ".join(sorted(list(map(lambda x: f"-{x}", allerg["allerg"])))), ", ".join(s_full), allerg["extra"]])
+    else:
+        return {"Allergier": ", ".join(sorted(list(map(lambda x: f"-{x}", allerg["allerg"])))), "Kostavvikelser": ", ".join(s_full), "Extra": allerg["extra"]}
 
 
 def input_special(daytime, meal_type, key_char):
@@ -410,15 +420,15 @@ def input_special(daytime, meal_type, key_char):
                 # if same_select:
                 #     col_meal_1.selectbox("Samma kost som:", same_select, key=f'same_as_select_{key_char}_{e}', placeholder="Choose...", index=None)
                 if meal_type in st.session_state.result_dict["meals"][daytime]:
-                    if daytime == "lunch" and st.session_state.result_dict["meals"][daytime][meal_type].get("salads"):
+                    if st.session_state.result_dict["meals"][daytime][meal_type].get("salads"):
                         salad_str = st.session_state.result_dict["meals"][daytime][meal_type]["salads"]
                     else:
                         salad_str = None
-                    if daytime == "lunch" and st.session_state.result_dict["meals"][daytime][meal_type].get("cake"):
+                    if st.session_state.result_dict["meals"][daytime][meal_type].get("cake"):
                         cake_str = f"Lunchkaka"
                     else:
                         cake_str = None
-                    if daytime == "lunch" and st.session_state.result_dict["meals"][daytime][meal_type].get("bread"):
+                    if st.session_state.result_dict["meals"][daytime][meal_type].get("bread"):
                         bread_str = "Bröd och smör"
                     else:
                         bread_str = None
@@ -599,13 +609,11 @@ def read_excel(guest_cont, allerg_select, kostavv_select):
     # TODO: Manual entering of allergy data!
     # TODO: Adjust excel reading if neded!
 
-   # st.markdown("### Upload Excel and Read Specific Range")
 
     # File uploader
     uploaded_file = st.file_uploader("Choose an Excel file", type="xlsx")
 
     if uploaded_file:
-        # Read the specific range A20:C20 (1-based index) from the first sheet
         df_raw = pd.ExcelFile(uploaded_file)
 
         with st.container(border=True):
@@ -695,6 +703,8 @@ def read_excel(guest_cont, allerg_select, kostavv_select):
                     [0.25, 0.25, 0.25, 0.2, 0.05])
                 with col_df1:
                     # df_upd_finished = show_df_with_checkboxes(df_upd_finished, "column_name__", f"summary_allerg_result_2", no_filter=True, allow_delete=False, column_order=('choose', 'Allergier', 'Extra info'), hide_index=False)
+                    
+                    # TODO: load from json. Maybe save the person strings into json first.
                     st.write(
                         f"{pers_w_allerg} -- {df_upd_finished.loc[pers_w_allerg, 'Allergier']}")
                 with col_df2:
@@ -760,9 +770,9 @@ def read_excel(guest_cont, allerg_select, kostavv_select):
 
 def format_special_string(text, first=False):
     if first:
-        max_line = 35
+        max_line = 33
     else:
-        max_line = 26
+        max_line = 24
     line = ""
     rest = []
 
@@ -875,9 +885,6 @@ def prepare_excel_data(wb):
     base_data = []
     row_count = cell_names["start_row"]
     special_rows = 0
-    header_ranges = ['A1', 'A2']
-    daytime_headers = []
-    special_row_format = []
 
     if "lunch" in res_dict["meals"]:
         data_dict = res_dict["meals"]["lunch"]
@@ -1038,106 +1045,181 @@ def prepare_excel_data(wb):
 
         if "starter" in data_dict:
 
-                
-            base_data.extend([
+            base_data, merge_data, row_count = compile_data({"sv": "Förrätt", "en": "starter"}, add_format, cell_names, merge_data, base_data, row_count, data_dict)
+
+
+        if "main" in data_dict:
+            # data_special, special_rows = prep_special(data_dict, "main")
+            # main_data = [[f"Varmrätt: {data_dict["amount_guests"] - data_dict["main"].get("amount_special", 0)} pers.", data_dict["main"]["food"]],
+            #             [f"Special:"],
+            #             ]
+            # row_count += 2
+            
+            # special_row_format.append(f"A{row_count}:B{row_count + special_rows}")
+
+            # main_data.extend(data_special)
+            # middag_values.extend(main_data)
+
+            # row_count += special_rows
+            base_data, merge_data, row_count = compile_data({"sv": "Varmrätt", "en": "main"}, add_format, cell_names, merge_data, base_data, row_count, data_dict)
+
+        
+        if "dessert" in data_dict:
+            # data_special, special_rows = prep_special(data_dict, "dessert")
+            # dessert_data = [[f"Dessert: {data_dict["amount_guests"] - data_dict["dessert"].get("amount_special", 0)} pers.", data_dict["dessert"]["food"]],
+            #             [f"Special:"],
+            #             ]
+            # row_count += 2
+            
+            # special_row_format.append(f"A{row_count}:B{row_count + special_rows}")
+            
+            # dessert_data.extend(data_special)
+            # middag_values.extend(dessert_data)
+
+            # row_count += special_rows
+            base_data, merge_data, row_count = compile_data({"sv": "Dessert", "en": "dessert"}, add_format, cell_names, merge_data, base_data, row_count, data_dict)
+
+
+        # middag_values.extend([["Bröd och smör:", f"{'Ja' if res_dict["meals"]["middag"]["bread"] else '---'}"]])
+
+        # if "salads" in data_dict:
+        #     data_special, special_rows = prep_special(data_dict, "salads")
+
+        #     salad_data = [["Sallader:", data_dict["salads"]["food"]],
+        #                 [f"Special:"],
+        #                 ]
+        #     row_count += 3
+        #     special_row_format.append(f"A{row_count}:B{row_count + special_rows}")
+            
+        #     salad_data.extend(data_special)
+        #     middag_values.extend(salad_data)
+
+        #     row_count += special_rows
+
+        # base_data.extend([{"range": f'{cell_names["start_col"]}{current_row + 1}:{cell_names["end_col"]}', "values": middag_values}])
+        # daytime_headers.append(f'{cell_names["start_col"]}{current_row}')
+
+        # row_count += 2
+
+        if "extras" in res_dict["meals"]["middag"]:
+            data_dict = res_dict["meals"]["middag"]["extras"]
+            extra_special = False
+            
+            if "salads" in data_dict and data_dict["salads"] != "---":
+                merge_data.append({
+                "range": f'{cell_names["start_col"]}{row_count}:B{row_count}',
+                "values": "Sallader:",
+                "row_height": 15,
+                "format": add_format("base_format_bold", [1, 1, 2, 1]),
+                })
+
+                base_data.extend([
+                {
+                "range": f'C{row_count}',
+                "values": data_dict["salads"],
+                "format": add_format("base_format", [1, 1, 1, 2]),
+                },
+                ])
+                row_count += 1
+                print(row_count)
+                extra_special = True
+
+
+            if data_dict["bread"]:
+                merge_data.append({
+                "range": f'{cell_names["start_col"]}{row_count}:B{row_count}',
+                "values": "Bröd och smör:",
+                "row_height": 15,
+                "format": add_format("base_format_bold", [1, 1, 2, 1]),
+                })
+
+                base_data.extend([
+                {
+                "range": f'C{row_count}',
+                "values": "Ja",
+                            "format": add_format("base_format", [1, 1, 1, 2]),
+                },
+                ])
+                row_count += 1
+                print(row_count)
+                extra_special = True
+
+
+            merge_data.extend([
+                {
+                "range": f'{cell_names["start_col"]}{row_count}:C{row_count}',
+                "values": "Special:",
+                            "format": add_format("special_format_bold", [1, 1, 2, 2]),
+                        "row_height": 15,
+                },
+                ])
+            row_count += 1
+
+            if extra_special:
+                special_rows, merge_data_special, food_data  = prep_special(res_dict["meals"]["middag"], "extras", row_count, add_format)
+                merge_data.extend(merge_data_special)
+                base_data.extend(food_data)
+                row_count += special_rows + 1
+    
+        row_count += 1
+        base_data.extend([{
+            "range": f'{cell_names["start_col"]}{row_count}',
+            "values": "Anmärkningar:",
+            "format": add_format("base_format_bold", [0, 0, 2, 0]),}])
+        
+        json_path = Path("allergies_formatted.json")
+
+        if json_path.exists():
+            row_count += 2
+            with open(json_path, "r", encoding="utf-8") as json_file:
+                list_data = sorted([f"1 p. {v}" for v in json.load(json_file).values() if v])
+                allerg_data = "\n".join(list_data)
+                merge_data.extend([{
+                    "range": f'{cell_names["start_col"]}{row_count}:C{row_count}',
+                    "values": allerg_data,
+                    "format": add_format("base_format"),
+                    "row_height": len(list_data) * 15
+                    }])
+                print(allerg_data)
+            
+        return merge_data, base_data, row_count
+
+
+def compile_data(meal_type, add_format, cell_names, merge_data, base_data, row_count, data_dict):
+    base_data.extend([
                 {
                 "range": f'{cell_names["start_col"]}{row_count}',
-                "values": "Varmrätt:",
+                "values": f"{meal_type["sv"]}:",
                             "format": add_format("base_format_bold", [1, 1, 2, 0]),
                 },
                 {
                 "range": f'B{row_count}',
-                "values": f"{data_dict["amount_guests"] - data_dict["main"].get("amount_special", 0)} pers.",
+                "values": f"{data_dict["amount_guests"] - data_dict[meal_type["en"]].get("amount_special", 0)} pers.",
                             "format": add_format("base_format", [1, 1, 0, 1]),
                 },
                 {
                 "range": f'C{row_count}',
-                "values": data_dict["main"]["food"],
+                "values": data_dict[meal_type["en"]]["food"],
                             "format": add_format("base_format", [1, 1, 1, 2]),
                 },
                 ])
-            row_count += 1
+    row_count += 1
 
-            merge_data.extend([{
+    merge_data.extend([{
                 "range": f'{cell_names["start_col"]}{row_count}:C{row_count}',
-                "values": "Special f. varmrätt:",
+                "values": f"Special f. {meal_type["sv"].lower()}:",
                             "format": add_format("special_format_bold", [1, 1, 2, 2]),
                         "row_height": 15,
-
                 },
                 ])
-            row_count += 1
+    row_count += 1
 
-            special_rows, merge_data_special, food_data  = prep_special(data_dict, "main", row_count, add_format)
-            merge_data.extend(merge_data_special)
-            base_data.extend(food_data)
-            row_count += special_rows
-            print(row_count)
+    special_rows, merge_data_special, food_data  = prep_special(data_dict, meal_type["en"], row_count, add_format)
+    merge_data.extend(merge_data_special)
+    base_data.extend(food_data)
+    row_count += special_rows
 
-
-            
-            data_special, special_rows = prep_special(data_dict, "starter")
-            starter_data = [[f"Förrätt: {data_dict["amount_guests"] - data_dict['starter'].get("amount_special", 0)} pers.", data_dict["starter"]["food"]],
-                            [f"Special:"],
-                            ]
-            row_count += 2
-            special_row_format.append(f"A{row_count}:B{row_count + special_rows}")
-            starter_data.extend(data_special)
-            middag_values.extend(starter_data)
-
-            row_count += special_rows
-
-        if "main" in data_dict:
-            data_special, special_rows = prep_special(data_dict, "main")
-            main_data = [[f"Varmrätt: {data_dict["amount_guests"] - data_dict["main"].get("amount_special", 0)} pers.", data_dict["main"]["food"]],
-                        [f"Special:"],
-                        ]
-            row_count += 2
-            
-            special_row_format.append(f"A{row_count}:B{row_count + special_rows}")
-
-            main_data.extend(data_special)
-            middag_values.extend(main_data)
-
-            row_count += special_rows
-        
-        if "dessert" in data_dict:
-            data_special, special_rows = prep_special(data_dict, "dessert")
-            dessert_data = [[f"Dessert: {data_dict["amount_guests"] - data_dict["dessert"].get("amount_special", 0)} pers.", data_dict["dessert"]["food"]],
-                        [f"Special:"],
-                        ]
-            row_count += 2
-            
-            special_row_format.append(f"A{row_count}:B{row_count + special_rows}")
-            
-            dessert_data.extend(data_special)
-            middag_values.extend(dessert_data)
-
-            row_count += special_rows
-
-        middag_values.extend([["Bröd och smör:", f"{'Ja' if res_dict["meals"]["middag"]["bread"] else '---'}"]])
-
-        if "salads" in data_dict:
-            data_special, special_rows = prep_special(data_dict, "salads")
-
-            salad_data = [["Sallader:", data_dict["salads"]["food"]],
-                        [f"Special:"],
-                        ]
-            row_count += 3
-            special_row_format.append(f"A{row_count}:B{row_count + special_rows}")
-            
-            salad_data.extend(data_special)
-            middag_values.extend(salad_data)
-
-            row_count += special_rows
-
-        base_data.extend([{"range": f'{cell_names["start_col"]}{current_row + 1}:{cell_names["end_col"]}', "values": middag_values}])
-        daytime_headers.append(f'{cell_names["start_col"]}{current_row}')
-
-        row_count += 2
-        base_data.extend([{"range": f'{cell_names["start_col"]}{row_count + 1}', "values": [["Anmärkningar"]]}])
-    
-    return merge_data, base_data, row_count
+    return base_data, merge_data, row_count
 
     # st.session_state.upd_conn.write_range(
     #     "Resultat", base_data)
@@ -1147,6 +1229,7 @@ def prepare_excel_data(wb):
 
 
 def write_range(ws, item):
+    print(item)
     cell_range = item["range"]
     data = item["values"]
     format = item["format"]
@@ -1222,96 +1305,9 @@ def write_excel():
     
     for item in base_data:
         write_range(worksheet, item)
-    # Merge 3 cells over two rows.
-    # worksheet.merge_range("A2:C2", data[1]["values"],
-    #                       add_format("subheader_format"))
-
-    # worksheet.write(0, 0, "MY HEADER", add_format("header_format"))
 
     workbook.close()
 
     fpath = f'"D:\\My Projects\\Coding\\Catering\\{wb_name}.xlsx"'
     os.system(fpath)
     
-    # df_upd_finished = st.data_editor(
-    #     df_upd_finished,
-    #     column_config={
-    #         "allergies": st.column_config.SelectboxColumn(
-    #             "Allergier",
-    #             help="The category of the app",
-    #             width="medium",
-    #             options=allerg_select,
-    #             required=True,
-    #         )
-    #     },
-    #     column_order=('Nr', '1', '2', 'Allergier', "allergies", 'Extra info'),
-    #     hide_index=False,
-    # )
-
-    # if df_upd_finished.loc[:, "choose"].max():   # shows true or false
-    #     chosen_idx = df_upd_finished.loc[:, "choose"].idxmax()
-    #     chosen_allergy = df_upd_finished.loc[chosen_idx, 'Allergier']
-    #     df_upd_finished.loc[chosen_idx, "choose"] = False
-    #     print(df_upd_finished)
-    #     return chosen_idx, chosen_allergy
-
-    # st.dataframe(df)
-    # Optionally set column names
-    # df.columns = [f"Column {i+1}" for i in range(df.shape[1])]
-
-    # # Convert the row to a dictionary
-    # result_dict = df.iloc[:].T.to_dict()
-
-    # # Show as DataFrame
-    # st.write("Extracted Data:")
-    # st.dataframe(pd.DataFrame([result_dict]))
-
-    # # Show the dictionary (optional)
-    # st.write("As dictionary:")
-    # st.json(result_dict)
-
-    # show_special_selection(f'{x}__')
-    # show_special_selection(f'{x}___')
-
-    #  xx = st.container()
-    # col_s1, col_s2, col_s3 = st.columns(3)
-    # col_s1.multiselect("Hur:", ['glutenfri', 'laktosfri', 'vegan'], key=f'spec_food_select_adj_{x}')
-    # col_s2.multiselect("Vad:", ['biff', 'sås'], key=f'spec_food_select_noun_{x}')
-    # col_s3.text_input("Extra:", key=f'spec_food_select_free_{x}')
-    #    print(st.session_state["special_food"])
-    # st.dataframe(st.session_state["special_food"])
-
-    # chosen_items = sum_df_upd[sum_df_upd.loc[:, "choose"] == True]
-    # for i in range(len(chosen_items)):
-    #     #print(chosen_items.iloc[i]["entry"])
-    #     if st.session_state.result_dict["meals"][daytime].get("special"):
-    #         next_idx = max(list(st.session_state.result_dict["meals"][daytime]["special"].keys())) + 1
-    #     else:
-    #         next_idx = 0
-    #         st.session_state.result_dict["meals"][daytime]["special"] = {}
-    #     st.session_state.result_dict["meals"][daytime]["special"].update({next_idx: chosen_items.iloc[i]["entry"]})
-    # with col_df_3:
-    #     st.write("Min egen sammanfattning:")
-    #     if st.session_state.result_dict["meals"][daytime].get("special"):
-    #         sum_df_own = pd.DataFrame({"entry": [v for v in st.session_state.result_dict["meals"][daytime].get("special").values()]}, index=range(0, len(st.session_state.result_dict["meals"][daytime].get("special", None))))
-    #         sum_df_own_upd = show_editable_df(sum_df_own, f"delete_allerg_own", "summary_allerg_own", no_filter=True, allow_delete=True)
-    #         upd_allerg = st.button("Uppdatera")
-    #         if upd_allerg:
-    #             st.session_state.result_dict["meals"][daytime]["special"] = {idx: entry for idx, entry in zip(list(sum_df_own_upd.index), list(sum_df_own_upd.loc[:, "entry"]))}
-    #             print(st.session_state.result_dict["meals"][daytime]["special"])
-    #             print("###")
-    #             print(sum_df_own_upd.loc[:, "entry"])
-    #             print(sum_df_own_upd.index)
-
-    # del_allerg = st.button("Ta bort")
-    # if del_allerg:
-    #     for idx in sum_df_own_upd[sum_df_own_upd.loc[:, "choose"] == True].index:
-    #         print(sum_df_own_upd.iloc[idx])
-    #         #st.session_state.result_dict["meals"][daytime]["special"].pop(idx)
-    #         st.rerun()
-
-    # chosen_items = sum_df_own_upd[sum_df_own_upd.loc[:, "choose"] == True]
-    # for idx in range(len(chosen_items)):
-    #     #print(chosen_items.iloc[i]["entry"])
-    #     #next_idx = max(list(st.session_state.result_dict["meals"][daytime]["special"].keys())) + 1
-    #     st.session_state.result_dict["meals"][daytime]["special"].update({next_idx: chosen_items.iloc[i]["entry"]})

@@ -1,0 +1,62 @@
+{
+    "1": {
+        "allerg": [],
+        "kost": [],
+        "extra": ""
+    },
+    "2": {
+        "allerg": [],
+        "kost": [],
+        "extra": "Pescatarian"
+    },
+    "6": {
+        "allerg": [
+            "fisk",
+            "mjölk och mjölkprodukter"
+        ],
+        "kost": [],
+        "extra": "Havremjölk i övrigt -speciellt."
+    },
+    "14": {
+        "allerg": [],
+        "kost": [],
+        "extra": ""
+    },
+    "17": {
+        "allerg": [],
+        "kost": [
+            "Kyckling 🟢",
+            "Fisk 🟢"
+        ],
+        "extra": ""
+    },
+    "18": {
+        "allerg": [],
+        "kost": [],
+        "extra": ""
+    },
+    "21": {
+        "allerg": [
+            "laktos"
+        ],
+        "kost": [],
+        "extra": ""
+    },
+    "22": {
+        "allerg": [],
+        "kost": [],
+        "extra": "-hasselnötter. annars funkar allt."
+    },
+    "26": {
+        "allerg": [],
+        "kost": [],
+        "extra": ""
+    },
+    "30": {
+        "allerg": [],
+        "kost": [
+            "Röd kött 🔴"
+        ],
+        "extra": "Äter fisk och/eller veg"
+    }
+}

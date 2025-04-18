@@ -27,7 +27,7 @@ from datetime import date, datetime
 from datetime import time
 from streamlit_gsheets import GSheetsConnection
 from db_con import CatSheet, UpdSheet
-from utils import filter_dataframe, show_df_with_checkboxes, process_choice, input_main_info, input_special, read_excel, write_excel  # upd_results
+from utils import (format_allergy_string, process_choice, input_main_info, input_special, read_excel, write_excel)  # upd_results
 from collections import defaultdict
 
 st.set_page_config(page_title="Hello", page_icon=":material/waving_hand:",
@@ -191,6 +191,21 @@ res_cont = st.empty()
 # st.session_state.allerg.iloc[:, 0], st.session_state.allerg[st.session_state.allerg.loc[:, "Kostavvikelser"].notna()].iloc[:, 1])
 read_excel(guest_cont, allerg_select, kostavv_select)
 
+if st.button("Save allergy data for later"):
+    with open("allergies.json", "w", encoding="utf-8") as json_file:
+        json.dump(st.session_state.result_dict["allergies"], json_file,
+                  indent=4, ensure_ascii=False)
+
+if st.button("Save formatted allergy data"):
+    new_df = {}
+    if "allergies" in st.session_state.result_dict:
+        for pers, allerg in st.session_state.result_dict["allergies"].items():
+            formatted_dict = format_allergy_string(allerg, return_str=True)
+            new_df[pers] = formatted_dict
+
+    with open("allergies_formatted.json", "w", encoding="utf-8") as json_file:
+        json.dump(new_df, json_file,
+                  indent=4, ensure_ascii=False)
 
 # Reference the list for förmiddag here
 if "morning" not in st.session_state:
@@ -581,7 +596,7 @@ with st.expander("MIDDAG", expanded=st.session_state["expander_state_m"]):
 
             else:
                 if yes_middag and "salads" in st.session_state.result_dict["meals"]["middag"]["extras"]:
-                    st.session_state.result_dict["meals"]["middag"].pop(
+                    st.session_state.result_dict["meals"]["middag"]["extras"].pop(
                         "salads")
 
         with col_s2:
